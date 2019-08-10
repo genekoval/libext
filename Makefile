@@ -1,18 +1,36 @@
-CXX = g++
-CXXFLAGS = -std=gnu++17 -Wall
+PROJECT = extensions++
+VERSION = 0.1.0
+LIBRARY = lib$(PROJECT).so
 
-SRC := $(wildcard src/*.cpp)
-OBJ := $(patsubst %.cpp, %.o, $(SRC))
-TARGET = libext.so
+SRCDIR = src
+OBJDIR = obj
+INCDIR = include
+BINDIR = lib
+BUILDS = $(OBJDIR) $(BINDIR)
 
-.PHONY: clean
+CC = g++
+CCFLAGS = -I $(INCDIR) -std=gnu++17 -Wall
 
-%.o : %.cpp
-	$(CXX) -o $@ -c $(@:.o=.cpp) -fpic $(CXXFLAGS)
+SRC := $(wildcard $(SRCDIR)/*.cpp)
+OBJ := $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRC))
+TARGET = $(BINDIR)/$(LIBRARY).$(VERSION)
+
+$(OBJDIR)/%.o : $(SRCDIR)/%.cpp
+	$(CC) -o $@ -c -fpic $(CCFLAGS) $^
 
 $(TARGET) : $(OBJ)
-	$(CXX) -o $@ -shared $(CXXFLAGS) $^
+	$(CC) -o $@ -shared $(CCFLAGS) $^
+
+.PHONY: all dir clean version
+
+all : dir $(TARGET)
 
 clean :
-	find src -name \*.o -delete
-	rm -f $(TARGET)
+	rm -rf $(BUILDS)
+
+dir :
+	@mkdir -p $(BUILDS)
+
+version :
+	@echo Project: $(PROJECT)
+	@echo Version: $(VERSION)

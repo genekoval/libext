@@ -1,4 +1,4 @@
-#include "../include/chrono.h"
+#include <chrono.h>
 
 #include <ctime>
 #include <iomanip>
