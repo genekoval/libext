@@ -8,10 +8,10 @@ PREFIX = $(DEVROOT)
 LIBRARY = lib$(PROJECT).so
 LIBFILE = $(LIBRARY).$(VERSION)
 
-SRCDIR = src
-OBJDIR = obj
 INCDIR = include
-LIBDIR = lib
+SRCDIR = src
+OBJDIR = $(BUILD)/obj
+LIBDIR = $(BUILD)/lib
 
 CC = g++
 CCFLAGS = -I $(INCDIR) -std=gnu++17 -Wall
