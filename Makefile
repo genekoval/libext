@@ -19,7 +19,7 @@ CCFLAGS = -I $(INCDIR) -std=gnu++17 -Wall
 SRC := $(wildcard $(SRCDIR)/*.cpp)
 OBJ := $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRC))
 TARGET = $(LIBDIR)/$(LIBFILE)
-HEADERS := $(wildcard $(INCDIR)/*.h)
+HEADERS := $(wildcard $(HINSTALL)/*.h)
 HINSTALL = $(INCDIR)/$(NAMESPACE)
 
 $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
