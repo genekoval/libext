@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+#include <cctype>
 #include <functional>
 #include <iterator>
 #include <regex>
@@ -75,5 +77,29 @@ namespace nova::ext::string {
             next != Container::value_type::npos &&
             (current = next + size) <= s.size()
         );
+    }
+
+    inline std::string trim_left(std::string str) {
+        str.erase(
+            str.begin(),
+            std::find_if(str.begin(), str.end(), [](unsigned char c) {
+                return !std::isspace(c);
+            })
+        );
+        return str;
+    }
+
+    inline std::string trim_right(std::string str) {
+        if (!str.size()) return str;
+
+        auto it = --str.end();
+        while (std::isspace(*it)) it--;
+
+        str.erase(++it, str.end());
+        return str;
+    }
+
+    inline std::string trim(std::string string) {
+        return trim_left(trim_right(string));
     }
 }
