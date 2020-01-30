@@ -9,6 +9,9 @@
 #include <string>
 #include <unordered_map>
 
+#define QUOTE(string) "‘" + string + "‘"
+#define QUOTE_VIEW(string_view) QUOTE(std::string(string_view))
+
 namespace nova::ext::string {
     using string_map = std::unordered_map<std::string,std::string>;
 
