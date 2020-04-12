@@ -1,4 +1,5 @@
 *.swp
+.vscode
 
 # Files removed by 'make clean' {{{
 bin
