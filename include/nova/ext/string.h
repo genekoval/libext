@@ -35,6 +35,8 @@ namespace nova::ext::string {
         return os.str();
     }
 
+    std::string expand_env(const std::string& str);
+
     template <typename T>
     std::string replace(
         const std::string& sequence,
