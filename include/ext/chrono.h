@@ -5,7 +5,7 @@
 #include <string>
 #include <string_view>
 
-namespace nova::ext::chrono {
+namespace ext::chrono {
     using clock = std::chrono::system_clock;
     using time_point = clock::time_point;
 
@@ -21,11 +21,11 @@ namespace nova::ext::chrono {
     public:
         timestamp(std::string_view format, time_type type);
 
-        std::string format() const;
-        std::string strftime(int buffer_size) const;
-        time_point time() const;
-        time_type type() const;
+        auto format() const -> std::string;
+        auto strftime(int buffer_size) const -> std::string;
+        auto time() const -> time_point;
+        auto type() const -> time_type;
     };
 
-    std::ostream& operator<<(std::ostream& os, const timestamp& ts);
+    auto operator<<(std::ostream& os, const timestamp& ts) -> std::ostream&;
 }

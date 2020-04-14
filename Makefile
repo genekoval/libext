@@ -1,4 +1,4 @@
-project = extensions++
+project = ext++
 version = 0.1.0
 
 library = lib$(project)
