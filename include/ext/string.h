@@ -90,7 +90,7 @@ namespace ext {
 
         auto end = std::sregex_iterator();
 
-        if (it == end) return sequence;
+        if (it == end) return std::string(sequence);
 
         auto os = std::ostringstream();
 
@@ -105,31 +105,80 @@ namespace ext {
         return os.str();
     }
 
-    // TODO Document this method. Maybe get a better parameter name than 's'.
-    template <
-        typename Container,
-        typename Value = typename Container::value_type
-    >
+    class string_range {
+        const std::string delimiter;
+        const std::string_view sequence;
+    public:
+        string_range(std::string_view sequence, std::string_view delimiter) :
+            delimiter(delimiter),
+            sequence(sequence)
+        {}
+
+        class iterator {
+        public:
+            using difference_type = std::string_view::size_type;
+            using value_type = std::string_view;
+            using pointer = const value_type*;
+            using reference = value_type;
+            using iterator_category = std::forward_iterator_tag;
+        private:
+            difference_type first;
+            difference_type last;
+            const string_range* range;
+
+            auto advance() -> void {
+                if (last == value_type::npos) {
+                    first = value_type::npos;
+                    return;
+                }
+
+                first = last + range->delimiter.size();
+                last = range->sequence.find(range->delimiter, first);
+            }
+        public:
+            iterator() : first(value_type::npos), last(value_type::npos) {}
+
+            iterator(const string_range* range) :
+                first(0),
+                last(range->sequence.find(range->delimiter)),
+                range(range)
+            {}
+
+            auto operator++() -> iterator& {
+                advance();
+                return *this;
+            }
+
+            auto operator++(int) -> iterator {
+                auto tmp = *this;
+                operator++();
+                return tmp;
+            }
+
+            auto operator==(const iterator& other) const -> bool {
+                return first == other.first && last == other.last;
+            }
+
+            auto operator!=(const iterator& other) const -> bool {
+                return !(*this == other);
+            }
+
+            auto operator*() -> reference {
+                return range->sequence.substr(first, last - first);
+            }
+        };
+
+        auto begin() -> iterator { return iterator(this); }
+
+        auto end() -> iterator { return iterator(); }
+    };
+
     auto split(
-        Container& result,
-        const Value& s,
-        const Value& sequence
-    ) -> void {
-        result.clear();
-
-        size_t size = sequence.size();
-        size_t current = 0;
-        size_t next = 0;
-
-        do {
-            next = s.find(sequence, current);
-
-            auto field = s.substr(current, next - current);
-            if (!field.empty()) result.push_back(field);
-        } while (
-            next != Value::npos &&
-            (current = next + size) <= s.size()
-        );
+        std::string_view sequence,
+        std::string_view delimiter
+    ) -> std::vector<std::string_view> {
+        auto range = ext::string_range(sequence, delimiter);
+        return std::vector<std::string_view>(range.begin(), range.end());
     }
 
     /**
