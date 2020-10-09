@@ -22,6 +22,14 @@ namespace ext {
         );
     }
 
+    auto split(
+        std::string_view sequence,
+        std::string_view delimiter
+    ) -> std::vector<std::string_view> {
+        auto range = ext::string_range(sequence, delimiter);
+        return std::vector<std::string_view>(range.begin(), range.end());
+    }
+
     auto trim(std::string string) -> std::string {
         return trim_left(trim_right(string));
     }

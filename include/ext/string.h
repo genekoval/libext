@@ -176,10 +176,7 @@ namespace ext {
     auto split(
         std::string_view sequence,
         std::string_view delimiter
-    ) -> std::vector<std::string_view> {
-        auto range = ext::string_range(sequence, delimiter);
-        return std::vector<std::string_view>(range.begin(), range.end());
-    }
+    ) -> std::vector<std::string_view>;
 
     /**
      * Returns a new string with all leading and trailing whitespace removed
