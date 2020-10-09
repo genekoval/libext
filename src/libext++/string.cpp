@@ -5,18 +5,18 @@
 namespace ext {
     constexpr auto environment_variable_regex = "\\$([a-zA-Z_]+[a-zA-Z0-9_]*)";
 
-    auto expand_env(const std::string& string) -> std::string {
-        return replace<std::string>(
+    auto expand_env(std::string_view string) -> std::string {
+        return replace(
             string,
             std::regex(environment_variable_regex),
-            [&string](const std::smatch& match) -> std::string {
+            [&string](const std::cmatch& match) -> std::string {
                 const auto s = match[1].str();
 
                 if (auto env = std::getenv(s.c_str())) return env;
 
                 throw std::invalid_argument(
                     "undefined environment variable " QUOTE(s) " in sequence: "
-                        + string
+                        + std::string(string)
                 );
             }
         );

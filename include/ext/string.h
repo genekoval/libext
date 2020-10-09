@@ -30,7 +30,7 @@ namespace ext {
      * @return A new string with all environment variables expanded.
      * @throw std::invalid_argument An undefined environment variable was found.
      */
-    auto expand_env(const std::string& sequence) -> std::string;
+    auto expand_env(std::string_view sequence) -> std::string;
 
     /**
      * Returns a new string composed of copies of the Container elements joined
@@ -76,26 +76,23 @@ namespace ext {
      * @return A new string, with some or all matches of a pattern replaced by a
      * replacement.
      */
-    template <typename T>
+    template <typename Callable>
     auto replace(
-        const std::string& sequence,
+        std::string_view sequence,
         const std::regex& pattern,
-        const std::function<T(const std::smatch&)>& replacement
+        Callable&& replacement
     ) -> std::string {
-        auto it = std::sregex_iterator(
-            sequence.begin(),
-            sequence.end(),
-            pattern
-        );
+        using iterator = std::regex_iterator<std::string_view::iterator>;
 
-        auto end = std::sregex_iterator();
+        auto it = iterator(sequence.begin(), sequence.end(), pattern);
+        auto end = iterator();
 
         if (it == end) return std::string(sequence);
 
         auto os = std::ostringstream();
 
         while (it != end) {
-            auto match = *it;
+            const auto& match = *it;
 
             os << match.prefix();
             os << replacement(match);
