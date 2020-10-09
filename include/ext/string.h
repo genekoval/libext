@@ -201,4 +201,9 @@ namespace ext {
      * @return A new string with all trailing whitespace removed.
      */
     auto trim_right(std::string string) -> std::string;
+
+    /**
+     * Surrounds the given string with special quotation marks.
+     */
+    auto quote(std::string_view text) -> std::string;
 }

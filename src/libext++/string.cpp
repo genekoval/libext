@@ -53,4 +53,10 @@ namespace ext {
         string.erase(++it, string.end());
         return string;
     }
+
+    auto quote(std::string_view text) -> std::string {
+        auto os = std::stringstream();
+        os << "‘" << text << "‘";
+        return os.str();
+    }
 }
