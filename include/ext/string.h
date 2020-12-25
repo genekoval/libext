@@ -92,7 +92,10 @@ namespace ext {
         auto os = std::ostringstream();
 
         while (it != end) {
-            const auto& match = *it;
+            // Create a copy of the match object.
+            // If a reference is used instead, advancing the iterator later on
+            // will give us the wrong match suffix.
+            const auto match = *it;
 
             os << match.prefix();
             os << replacement(match);
