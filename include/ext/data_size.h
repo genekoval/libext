@@ -71,7 +71,7 @@ namespace ext {
             multiple(multiple)
         {}
 
-        auto str(uint precision) const -> std::string;
+        auto str(uint decimal_places) const -> std::string;
     };
 
     namespace literals {

@@ -15,9 +15,13 @@ namespace ext {
         return os;
     }
 
-    auto data_size::str(uint precision) const -> std::string {
+    auto data_size::str(uint decimal_places) const -> std::string {
+        const auto multiplier = std::pow(10.0, decimal_places);
+        const auto rounded = std::ceil(value * multiplier) / multiplier;
+
         auto os = std::ostringstream();
-        os << std::setprecision(precision) << value << " " << multiple;
+        os << rounded << " " << multiple;
+
         return os.str();
     }
 }

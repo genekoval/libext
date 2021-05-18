@@ -69,7 +69,7 @@ TEST(DataSize, FormatGibibtyesWithRound) {
     ASSERT_EQ(bytes, size.bytes);
     ASSERT_TRUE(size.value < 2.357 && size.value > 2.356);
     ASSERT_EQ(ext::byte_multiple::GiB, size.multiple);
-    ASSERT_EQ("2.36 GiB", size.str(3));
+    ASSERT_EQ("2.36 GiB", size.str(2));
 }
 
 TEST(DataSize, LiteralKibibyte) {
