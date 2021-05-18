@@ -4,6 +4,24 @@
 
 using namespace ext::literals;
 
+TEST(DataSize, ZeroBytes) {
+    const auto size = ext::data_size::format(0);
+
+    ASSERT_EQ(0, size.bytes);
+    ASSERT_EQ(0, size.value);
+    ASSERT_EQ(ext::byte_multiple::B, size.multiple);
+    ASSERT_EQ("0 B", size.str(3));
+}
+
+TEST(DataSize, OneByte) {
+    const auto size = ext::data_size::format(1);
+
+    ASSERT_EQ(1, size.bytes);
+    ASSERT_EQ(1, size.value);
+    ASSERT_EQ(ext::byte_multiple::B, size.multiple);
+    ASSERT_EQ("1 B", size.str(3));
+}
+
 TEST(DataSize, CreateFromKibibyte) {
     constexpr auto value = 1;
     constexpr auto multiple = ext::byte_multiple::KiB;

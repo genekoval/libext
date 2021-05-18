@@ -34,6 +34,8 @@ namespace ext {
         {}
     public:
         static constexpr auto format(uintmax_t bytes) -> data_size {
+            if (bytes == 0) return data_size();
+
             const auto magnitude = static_cast<int>(
                 std::log(bytes) / std::log(byte_unit_max)
             );
@@ -52,9 +54,11 @@ namespace ext {
             }
         }
 
-        const uintmax_t bytes;
-        const double value;
-        const byte_multiple multiple;
+        const uintmax_t bytes = 0;
+        const double value = 0.0;
+        const byte_multiple multiple = ext::byte_multiple::B;
+
+        constexpr data_size() = default;
 
         constexpr data_size(double value, byte_multiple multiple) :
             bytes(
