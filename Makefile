@@ -9,6 +9,9 @@ install := $(library)
 targets := $(install)
 
 $(library).type = shared
+define $(library).libs
+ fmt
+endef
 
 define test.libs
  $(project)
