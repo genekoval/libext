@@ -4,7 +4,9 @@
 #include <grp.h>
 #include <optional>
 #include <pwd.h>
+#include <span>
 #include <string>
+#include <sys/wait.h>
 #include <variant>
 
 namespace ext {
@@ -51,4 +53,36 @@ namespace ext {
         const std::optional<user>& owner = {},
         const std::optional<group>& group = {}
     ) -> void;
+
+    auto exec(
+        std::string_view program,
+        std::span<const std::string_view> args
+    ) -> void;
+
+    struct exit_status {
+        int code;
+        int status;
+    };
+
+    class process {
+        const pid_t _pid;
+
+        process(pid_t pid);
+    public:
+        static auto fork() -> std::optional<process>;
+
+        auto pid() const -> pid_t;
+
+        auto wait() const -> exit_status;
+    };
+
+    auto exec_bg(
+        std::string_view program,
+        std::span<const std::string_view> args
+    ) -> process;
+
+    auto wait_exec(
+        std::string_view program,
+        std::span<const std::string_view> args
+    ) -> exit_status;
 }

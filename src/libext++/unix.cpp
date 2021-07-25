@@ -161,4 +161,76 @@ namespace ext {
             ));
         }
     }
+
+    auto exec(
+        std::string_view program,
+        std::span<const std::string_view> args
+    ) -> void {
+        auto argv = std::unique_ptr<char*[]>(new char*[args.size() + 2]);
+
+        argv[0] = (char*) (program.data());
+
+        for (auto i = 0ul; i < args.size(); ++i) {
+            argv[i + 1] = (char*) args[i].data();
+        }
+
+        argv[args.size() + 1] = nullptr;
+
+        if (execvp(program.data(), argv.get()) == -1) {
+            throw ext::system_error(fmt::format(
+                "Failed to execute '{}' command",
+                program
+            ));
+        }
+    }
+
+    process::process(pid_t pid) : _pid(pid) {}
+
+    auto process::fork() -> std::optional<process> {
+        auto pid = ::fork();
+
+        if (pid < 0) {
+            throw ext::system_error("Failed to create child process");
+        }
+
+        if (pid > 0) return process(pid);
+        return {};
+    }
+
+    auto process::pid() const -> pid_t {
+        return _pid;
+    }
+
+    auto process::wait() const -> exit_status {
+        auto info = siginfo_t();
+
+        if (waitid(P_PID, _pid, &info, WEXITED) == -1) {
+            throw ext::system_error("Failed to wait for child process");
+        }
+
+        return {
+            .code = info.si_code,
+            .status = info.si_status
+        };
+    }
+
+    auto exec_bg(
+        std::string_view program,
+        std::span<const std::string_view> args
+    ) -> process {
+        const auto parent = process::fork();
+
+        if (!parent) {
+            exec(program, args);
+        }
+
+        return *parent;
+    }
+
+    auto wait_exec(
+        std::string_view program,
+        std::span<const std::string_view> args
+    ) -> exit_status {
+        return exec_bg(program, args).wait();
+    }
 }
