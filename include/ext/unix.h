@@ -8,6 +8,7 @@
 #include <string>
 #include <sys/wait.h>
 #include <variant>
+#include <vector>
 
 namespace ext {
     class group {
@@ -85,4 +86,10 @@ namespace ext {
         std::string_view program,
         std::span<const std::string_view> args
     ) -> exit_status;
+
+    template <typename ...Args>
+    auto $(std::string_view program, Args&&... args) -> exit_status {
+        const auto arg_list = std::vector<std::string_view> {args...};
+        return wait_exec(program, arg_list);
+    }
 }
