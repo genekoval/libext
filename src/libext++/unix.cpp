@@ -168,13 +168,23 @@ namespace ext {
     ) -> void {
         auto argv = std::unique_ptr<char*[]>(new char*[args.size() + 2]);
 
-        argv[0] = (char*) (program.data());
-
-        for (auto i = 0ul; i < args.size(); ++i) {
-            argv[i + 1] = (char*) args[i].data();
-        }
+        auto program_str = std::string(program);
+        argv[0] = program_str.data();
 
         argv[args.size() + 1] = nullptr;
+
+        auto args_vec = std::vector<std::unique_ptr<char[]>>();
+
+        for (auto i = 0ul; i < args.size(); ++i) {
+            const auto& current = args[i];
+            const auto size = current.size();
+
+            args_vec.emplace_back(new char[size + 1]);
+            current.copy(args_vec[i].get(), size);
+            args_vec[i][size] = '\0';
+
+            argv[i + 1] = args_vec[i].get();
+        }
 
         if (execvp(program.data(), argv.get()) == -1) {
             throw ext::system_error(fmt::format(
