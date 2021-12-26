@@ -1,7 +1,6 @@
 project = ext++
-version = 0.1.0
 
-STD := c++2a
+STD := c++20
 
 library = lib$(project)
 
@@ -9,15 +8,11 @@ install := $(library)
 targets := $(install)
 
 $(library).type = shared
-define $(library).libs
- fmt
-endef
+$(library).libs = fmt
 
-define test.libs
- $(project)
- gtest
- gtest_main
-endef
+test.libs = $(project) gtest gtest_main
 test.deps = $(library)
+
+files = $(include) $(src) Makefile VERSION
 
 include mkbuild/base.mk
