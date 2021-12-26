@@ -1,0 +1,25 @@
+kind: pipeline
+type: docker
+name: release
+
+steps:
+  - name: package
+    image: gcc:latest
+    commands:
+      - echo ${DRONE_TAG##v} > VERSION
+      - make package
+      - make release
+
+  - name: gitea_release
+    image: plugins/gitea-release
+    settings:
+      base_url: https://git.aurora.aur
+      api_key:
+        from_secret: gitea_token
+      files:
+        - '*.tar.gz'
+      title: release
+
+trigger:
+  event:
+    - tag
