@@ -4,7 +4,7 @@ name: release
 
 steps:
   - name: package
-    image: gcc:latest
+    image: docker.aurora.aur/mkbuild:latest
     commands:
       - echo ${DRONE_TAG##v} > VERSION
       - make package
