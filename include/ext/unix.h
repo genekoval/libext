@@ -49,10 +49,22 @@ namespace ext {
         auto uid() const -> uid_t;
     };
 
+    auto chown(const std::filesystem::path& path, uid_t uid, gid_t gid) -> void;
+
+    auto chown(const std::filesystem::path& path, const user& owner) -> void;
+
+    auto chown(const std::filesystem::path& path, const group& group) -> void;
+
     auto chown(
         const std::filesystem::path& path,
-        const std::optional<user>& owner = {},
-        const std::optional<group>& group = {}
+        const user& owner,
+        const group& group
+    ) -> void;
+
+    auto chown(
+        const std::filesystem::path& path,
+        const std::optional<user>& owner,
+        const std::optional<group>& group
     ) -> void;
 
     auto exec(

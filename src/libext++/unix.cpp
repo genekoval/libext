@@ -147,19 +147,41 @@ namespace ext {
 
     auto chown(
         const std::filesystem::path& path,
+        uid_t uid,
+        gid_t gid
+    ) -> void {
+        if (::chown(path.c_str(), uid, gid) == -1) {
+            throw system_error(fmt::format(
+                "changing ownership of '{}'",
+                path.native()
+            ));
+        }
+    }
+
+    auto chown(const std::filesystem::path& path, const user& owner) -> void {
+        chown(path, owner.uid(), -1);
+    }
+
+    auto chown(const std::filesystem::path& path, const group& group) -> void {
+        chown(path, -1, group.gid());
+    }
+
+    auto chown(
+        const std::filesystem::path& path,
+        const user& owner,
+        const group& group
+    ) -> void {
+        chown(path, owner.uid(), group.gid());
+    }
+
+    auto chown(
+        const std::filesystem::path& path,
         const std::optional<user>& owner,
         const std::optional<group>& group
     ) -> void {
-        const auto str = path.string();
-        const auto uid = owner ? owner.value().uid() : getuid();
-        const auto gid = group ? group.value().gid() : getgid();
-
-        if (::chown(str.c_str(), uid, gid) == -1) {
-            throw system_error(fmt::format(
-                "changing ownership of '{}'",
-                str
-            ));
-        }
+        if (owner && group) chown(path, *owner, *group);
+        else if (owner) chown(path, *owner);
+        else if (group) chown(path, *group);
     }
 
     auto exec(
