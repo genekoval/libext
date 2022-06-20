@@ -13,6 +13,8 @@ $(library).libs = fmt
 test.libs = $(project) gtest gtest_main
 test.deps = $(library)
 
+install.directories = $(include)/ext
+
 files = $(include) $(src) Makefile VERSION
 
 include mkbuild/base.mk
