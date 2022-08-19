@@ -12,7 +12,7 @@ namespace ext {
         B, KiB, MiB, GiB, TiB
     };
 
-    constexpr auto multiples = std::array {
+    constexpr auto multiples = std::array<byte_multiple, 5> {
         byte_multiple::B,
         byte_multiple::KiB,
         byte_multiple::MiB,
@@ -23,6 +23,10 @@ namespace ext {
     auto operator<<(std::ostream& os, byte_multiple multiple) -> std::ostream&;
 
     class data_size {
+        static constexpr auto pow(int base, int exp) -> long {
+            return exp ? base * pow(base, exp - 1) : 1;
+        }
+
         constexpr data_size(
             uintmax_t bytes,
             double value,
@@ -62,7 +66,7 @@ namespace ext {
 
         constexpr data_size(double value, byte_multiple multiple) :
             bytes(
-                std::pow(
+                pow(
                     byte_unit_max,
                     static_cast<std::underlying_type_t<byte_multiple>>(multiple)
                 ) * value
