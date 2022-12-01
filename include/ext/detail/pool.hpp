@@ -1,136 +1,183 @@
 #pragma once
 
-#include <functional>
-#include <memory>
-#include <type_traits>
+#include "coroutine/task.hpp"
+
+#include <optional>
 #include <vector>
 
 namespace ext {
+    namespace detail {
+        template <typename T>
+        class pool;
+    }
+
     template <typename T>
-    class pool final {
-        std::vector<std::unique_ptr<T>> storage;
-        std::vector<T*> available;
+    class pool_item final {
+        friend class detail::pool<T>;
 
-        auto expand(std::size_t size) -> void {
-            storage.reserve(size);
-            available.reserve(size);
+        std::optional<T> item;
+        std::optional<std::reference_wrapper<detail::pool<T>>> origin;
 
-            for (auto i = 0ul; i < size; ++i) {
-                storage.emplace_back(config.create());
-                available.push_back(storage.back().get());
-            }
-        }
-
-        auto put_back(T* item) noexcept -> void {
-            available.push_back(item);
-        }
+        pool_item(T&& item, detail::pool<T>& origin) :
+            item(std::forward<T>(item)),
+            origin(origin)
+        {}
     public:
-        using initializer = std::function<std::unique_ptr<T>()>;
+        pool_item() = default;
 
-        class item final {
-            friend class pool;
+        pool_item(const pool_item&) = delete;
 
-            T* data;
-            pool* origin;
+        pool_item(pool_item&& other) :
+            item(std::exchange(other.item, {})),
+            origin(std::exchange(other.origin, {}))
+        {}
 
-            item(pool* origin) : data(nullptr), origin(origin) {}
+        ~pool_item() {
+            if (!origin) return;
 
-            item(pool* origin, T* data) : data(data), origin(origin) {}
+            auto& pool = origin->get();
+            pool.checkin(std::move(item).value());
+        }
+
+        auto operator=(const pool_item&) -> pool_item& = delete;
+
+        auto operator=(pool_item&& other) noexcept -> pool_item& {
+            item = std::exchange(other.item, {});
+            origin = std::exchange(other.origin, {});
+
+            return *this;
+        }
+
+        auto operator->() const noexcept -> const T* {
+            return &*item;
+        }
+
+        auto operator->() noexcept -> T* {
+            return &*item;
+        }
+
+        auto operator*() const& noexcept -> const T& {
+            return *item;
+        }
+
+        auto operator*() & noexcept -> T& {
+            return *item;
+        }
+    };
+
+    struct pool_options {
+        // Use the greatest possible value by default.
+        std::size_t max_size = -1;
+    };
+
+    namespace detail {
+        template <typename T>
+        class pool {
+            friend class pool_item<T>;
+
+            std::vector<T> storage;
+        protected:
+            pool_options config;
+
+            auto checkout() -> std::optional<pool_item<T>> {
+                if (storage.empty()) return {};
+
+                auto result = make_item(std::move(storage.back()));
+
+                storage.pop_back();
+                return result;
+            }
+
+            auto make_item(T&& t) -> pool_item<T> {
+                return pool_item(std::forward<T>(t), *this);
+            }
         public:
-            item() : data(nullptr), origin(nullptr) {}
+            pool() = default;
 
-            item(const item&) = delete;
-
-            item(item&& other) :
-                data(std::exchange(other.data, nullptr)),
-                origin(std::exchange(other.origin, nullptr))
+            pool(pool_options&& config) :
+                config(std::forward<pool_options>(config))
             {}
 
-            ~item() {
-                if (origin) origin->put_back(data);
+            pool(const pool&) = delete;
+
+            pool(pool&&) = delete;
+
+            auto operator=(const pool&) -> pool& = delete;
+
+            auto operator=(pool&&) -> pool& = delete;
+
+            auto checkin(T&& t) noexcept -> void {
+                if (storage.size() < config.max_size) {
+                    storage.emplace_back(std::forward<T>(t));
+                }
             }
 
-            auto operator=(const item&) -> item& = delete;
-
-            auto operator=(item&& other) noexcept -> item& {
-                data = std::exchange(other.data, nullptr);
-                origin = std::exchange(other.origin, nullptr);
-
-                return *this;
+            auto empty() const noexcept -> bool {
+                return storage.empty();
             }
 
-            operator T*() const noexcept {
-                return data;
+            auto max_size() const noexcept -> std::size_t {
+                return config.max_size;
             }
 
-            operator T&() const noexcept {
-                return *data;
-            }
-
-            auto value() const noexcept -> T* {
-                return data;
+            auto size() const noexcept -> std::size_t {
+                return storage.size();
             }
         };
+    }
 
-        friend class item;
+    template <typename T, typename Provider>
+    concept pool_provider =
+        requires(Provider provider) {
+            { provider.provide() } -> std::same_as<T>;
+        } &&
+        requires { Provider{}; };
 
-        struct options final {
-            std::size_t initial_size = 1;
-            int scale_factor = 1;
-            initializer create = []() -> std::unique_ptr<T> {
-                static_assert(
-                    std::is_default_constructible_v<T>,
-                    "Default 'new_item' function requires "
-                    "a default constructible type"
-                );
-
-                return std::make_unique<T>();
-            };
-        };
-
-        const options config;
-
+    template <typename T, typename Provider>
+    requires pool_provider<T, Provider>
+    class pool final : public detail::pool<T> {
+        Provider provider;
+    public:
         pool() = default;
 
-        pool(options config) : config(config) {
-            expand(config.initial_size);
+        pool(Provider&& provider, pool_options&& config = {}) :
+            detail::pool<T>(std::forward<pool_options>(config)),
+            provider(std::forward<Provider>(provider))
+        {}
+
+        auto checkout() -> pool_item<T> {
+            auto cached = detail::pool<T>::checkout();
+            if (cached) return std::move(cached).value();
+
+            return detail::pool<T>::make_item(provider.provide());
         }
+    };
 
-        pool(const pool&) = delete;
+    template <typename T, typename Provider>
+    concept async_pool_provider =
+        requires(Provider provider) {
+            { provider.provide() } -> std::same_as<task<T>>;
+        } &&
+        requires { Provider{}; };
 
-        auto operator=(const pool&) -> pool& = delete;
+    template <typename T, typename Provider>
+    requires async_pool_provider<T, Provider>
+    class async_pool final : public detail::pool<T> {
+        Provider provider;
+    public:
+        async_pool() = default;
 
-        auto checkout() -> item {
-            if (available.empty()) {
-                expand(std::max(
-                    storage.size() * config.scale_factor,
-                    storage.size() + 1
-                ));
-            }
+        async_pool(Provider&& provider, pool_options&& config = {}) :
+            detail::pool<T>(std::forward<pool_options>(config)),
+            provider(std::forward<Provider>(provider))
+        {}
 
-            auto* value = available.back();
-            available.pop_back();
+        auto checkout() -> task<pool_item<T>> {
+            auto cached = detail::pool<T>::checkout();
+            if (cached) co_return std::move(cached).value();
 
-            return item(this, value);
-        }
-
-        auto count_available() const noexcept -> std::size_t {
-            return available.size();
-        }
-
-        auto count_in_use() const noexcept -> std::size_t {
-            return storage.size() - available.size();
-        }
-
-        template <typename Callable>
-        auto for_each(Callable&& callable) const noexcept -> void {
-            for (const auto& item : storage) {
-                callable(*item.get());
-            }
-        }
-
-        auto size() const noexcept -> std::size_t {
-            return storage.size();
+            auto t = co_await provider.provide();
+            co_return detail::pool<T>::make_item(std::move(t));
         }
     };
 }
