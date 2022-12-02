@@ -263,4 +263,11 @@ namespace ext {
             auto unhandled_exception() -> void;
         };
     };
+
+    auto make_task() -> ext::task<>;
+
+    template <typename T>
+    auto make_task(T t) -> ext::task<T> {
+        co_return t;
+    }
 }

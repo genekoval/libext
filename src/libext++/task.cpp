@@ -19,4 +19,8 @@ namespace ext {
     auto detached_task::promise_type::unhandled_exception() -> void {
         std::terminate();
     }
+
+    auto make_task() -> ext::task<> {
+        co_return;
+    }
 }
