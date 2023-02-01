@@ -30,27 +30,33 @@ namespace ext {
         return std::vector<std::string_view>(range.begin(), range.end());
     }
 
-    auto trim(std::string string) -> std::string {
-        return trim_left(trim_right(string));
+    auto trim(std::string_view string) -> std::string_view {
+        return trim_end(trim_start(string));
     }
 
-    auto trim_left(std::string string) -> std::string {
-        string.erase(
-            string.begin(),
-            std::find_if(string.begin(), string.end(), [](unsigned char c) {
-                return !std::isspace(c);
-            })
+    auto trim_start(std::string_view string) -> std::string_view {
+        const auto* begin = string.begin();
+
+        const auto* result = std::find_if(
+            begin,
+            string.end(),
+            [](unsigned char c) -> bool { return !std::isspace(c); }
         );
+
+        string.remove_prefix(std::distance(begin, result));
         return string;
     }
 
-    auto trim_right(std::string string) -> std::string {
-        if (!string.size()) return string;
+    auto trim_end(std::string_view string) -> std::string_view {
+        const auto begin = string.rbegin();
 
-        auto it = --string.end();
-        while (std::isspace(*it)) it--;
+        const auto result = std::find_if(
+            begin,
+            string.rend(),
+            [](unsigned char c) -> bool { return !std::isspace(c); }
+        );
 
-        string.erase(++it, string.end());
+        string.remove_suffix(std::distance(begin, result));
         return string;
     }
 

@@ -185,7 +185,7 @@ namespace ext {
      * @param string The string from which to remove whitespace.
      * @return A new string with all leading and trailing whitespace removed.
      */
-    auto trim(std::string string) -> std::string;
+    auto trim(std::string_view string) -> std::string_view;
 
     /**
      * Returns a new string with all leading whitespace removed from the given
@@ -194,7 +194,7 @@ namespace ext {
      * @param str The string from which to remove whitespace.
      * @return A new string with all leading whitespace removed.
      */
-    auto trim_left(std::string string) -> std::string;
+    auto trim_start(std::string_view string) -> std::string_view;
 
     /**
      * Returns a new string with all trailing whitespace removed from the given
@@ -203,7 +203,7 @@ namespace ext {
      * @param str The string from which to remove whitespace.
      * @return A new string with all trailing whitespace removed.
      */
-    auto trim_right(std::string string) -> std::string;
+    auto trim_end(std::string_view string) -> std::string_view;
 
     /**
      * Surrounds the given string with special quotation marks.
