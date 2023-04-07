@@ -1,3 +1,4 @@
+#include <ext/detail/coroutine/detached_task.hpp>
 #include <ext/detail/pool.hpp>
 
 #include <gtest/gtest.h>

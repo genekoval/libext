@@ -7,7 +7,7 @@
 
 namespace ext {
     template <typename R = void>
-    struct [[nodiscard("coroutine immediately destroyed")]] task final {
+    struct [[nodiscard("coroutine immediately destroyed")]] jtask final {
         struct promise_type;
     private:
         using coroutine_handle = std::coroutine_handle<promise_type>;
@@ -25,9 +25,8 @@ namespace ext {
 
             auto await_suspend(
                 std::coroutine_handle<> awaiting
-            ) noexcept -> std::coroutine_handle<> {
+            ) noexcept -> void {
                 coroutine.promise().continuation = awaiting;
-                return coroutine;
             }
         };
 
@@ -45,42 +44,45 @@ namespace ext {
                 auto await_suspend(
                     std::coroutine_handle<Promise> coroutine
                 ) const noexcept -> std::coroutine_handle<> {
-                    return coroutine.promise().continuation;
+                    const auto continuation = coroutine.promise().continuation;
+
+                    if (continuation) return continuation;
+                    return std::noop_coroutine();
                 }
 
                 auto await_resume() const noexcept -> void {}
             };
 
-            auto get_return_object() noexcept -> task {
-                return task(coroutine_handle::from_promise(*this));
+            auto get_return_object() noexcept -> jtask {
+                return jtask(coroutine_handle::from_promise(*this));
             }
 
             auto initial_suspend() const noexcept {
-                return std::suspend_always();
+                return std::suspend_never();
             }
 
-            auto final_suspend() const noexcept {
+            auto final_suspend() noexcept {
                 return final_awaitable();
             }
         };
 
-        task() noexcept : coroutine(nullptr) {}
+        jtask() noexcept : coroutine(nullptr) {}
 
-        explicit task(coroutine_handle coroutine) : coroutine(coroutine) {}
+        explicit jtask(coroutine_handle coroutine) : coroutine(coroutine) {}
 
-        task(const task&) = delete;
+        jtask(const jtask&) = delete;
 
-        task(task&& other) noexcept :
+        jtask(jtask&& other) noexcept :
             coroutine(std::exchange(other.coroutine, nullptr))
         {}
 
-        ~task() {
+        ~jtask() {
             if (coroutine) coroutine.destroy();
         }
 
-        auto operator=(const task&) -> task& = delete;
+        auto operator=(const jtask&) -> jtask& = delete;
 
-        auto operator=(task&& other) noexcept -> task& {
+        auto operator=(jtask&& other) noexcept -> jtask& {
             if (std::addressof(other) != this) {
                 if (coroutine) coroutine.destroy();
                 coroutine = std::exchange(other.coroutine, nullptr);
@@ -115,18 +117,14 @@ namespace ext {
             return awaitable(coroutine);
         }
 
-        /**
-         * Query if the task result is complete.
-         * Awaiting a task that is ready is guarenteed not to block/suspend.
-         */
         auto is_ready() const noexcept -> bool {
             return !coroutine || coroutine.done();
         }
 
-        /**
-         * Returns an awaitable that will await completion of the task without
-         * attempting to retrieve the result.
-         */
+        auto joinable() const noexcept -> bool {
+            return coroutine != nullptr;
+        }
+
         auto when_ready() const noexcept {
             struct awaitable : awaitable_base {
                 using awaitable_base::awaitable_base;
@@ -138,12 +136,4 @@ namespace ext {
         }
     };
 
-    inline auto make_task() -> ext::task<> {
-        co_return;
-    }
-
-    template <typename T>
-    auto make_task(T t) -> ext::task<T> {
-        co_return t;
-    }
 }
