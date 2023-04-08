@@ -8,6 +8,8 @@
 namespace ext {
     template <typename R = void>
     struct [[nodiscard("coroutine immediately destroyed")]] jtask final {
+        using value_type = R;
+
         struct promise_type;
     private:
         using coroutine_handle = std::coroutine_handle<promise_type>;
