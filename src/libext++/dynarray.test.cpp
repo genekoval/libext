@@ -1,76 +1,151 @@
-#include <ext/dynarray.h>
+#include <ext/dynarray>
 
 #include <cstring>
 #include <gtest/gtest.h>
+#include <span>
 
 using namespace std::literals;
 
-TEST(Dynarray, CopyData) {
-    constexpr auto text = "Test data."sv;
+using ext::dynarray;
 
-    const auto array = ext::dynarray<char>(text.size());
-    array.copy(text.data(), text.size());
+namespace {
+    class foo {
+        bool* alive;
+    public:
+        foo(bool& alive) : alive(&alive) {
+            *this->alive = true;
+        }
 
-    const auto span = array.span();
+        foo(const foo&) = delete;
 
-    for (auto i = 0ul; i < text.size(); ++i) {
-        ASSERT_EQ(text[i], span[i]);
-    }
+        foo(foo&&) = delete;
+
+        ~foo() {
+            *this->alive = false;
+        }
+
+        auto operator=(const foo&) -> foo& = delete;
+
+        auto operator=(foo&&) -> foo& = delete;
+    };
 }
 
-TEST(Dynarray, CopyWithOffset) {
-    constexpr auto text = "Test data."sv;
-    constexpr auto offset = text.size() / 2;
-    constexpr auto remainder = text.size() - offset;
+TEST(Dynarray, DefaultConstruction) {
+    const auto array = dynarray<int>();
 
-    const auto array = ext::dynarray<char>(text.size());
-    array.copy(text.data(), offset);
-    array.copy(&text[offset], remainder, offset);
-
-    const auto span = array.span();
-
-    for (auto i = 0ul; i < text.size(); ++i) {
-        ASSERT_EQ(text[i], span[i]);
-    }
+    EXPECT_TRUE(array.empty());
+    EXPECT_EQ(0, array.capacity());
+    EXPECT_EQ(0, array.size());
+    EXPECT_EQ(nullptr, array.data());
 }
 
-TEST(Dynarray, Create) {
-    constexpr auto size = 10;
+TEST(Dynarray, CapacityConstruction) {
+    constexpr dynarray<int>::size_type capacity = 3;
 
-    const auto array = ext::dynarray<int>(size);
+    const auto array = dynarray<int>(capacity);
 
-    ASSERT_NE(nullptr, array.data());
-    ASSERT_EQ(size, array.size());
+    EXPECT_TRUE(array.empty());
+    EXPECT_EQ(capacity, array.capacity());
+    EXPECT_EQ(0, array.size());
+    EXPECT_NE(nullptr, array.data());
 }
 
-TEST(Dynarray, CreateEmpty) {
-    const auto array = ext::dynarray<int>();
+TEST(Dynarray, InitializerListConstruction) {
+    const dynarray<int> array = { 5, 10, 15, 20 };
 
-    ASSERT_EQ(nullptr, array.data());
-    ASSERT_EQ(0ul, array.size());
+    EXPECT_FALSE(array.empty());
+    EXPECT_EQ(4, array.capacity());
+    EXPECT_EQ(array.capacity(), array.size());
+    EXPECT_NE(nullptr, array.data());
 }
 
-TEST(Dynarray, Release) {
-    constexpr auto text = "Hello, world!"sv;
+TEST(Dynarray, EmplaceBack) {
+    auto array = dynarray<foo>(1);
+    auto alive = false;
 
-    auto array = ext::dynarray<char>(text.size());
-    array.copy(text.data(), text.size());
+    array.emplace_back(alive);
+    EXPECT_TRUE(alive);
 
-    auto* ptr = array.release();
+    EXPECT_FALSE(array.empty());
+    EXPECT_EQ(1, array.capacity());
+    EXPECT_EQ(1, array.size());
 
-    ASSERT_EQ(nullptr, array.data());
-    ASSERT_EQ(0ul, array.size());
+    array.pop_back();
+    EXPECT_FALSE(alive);
 
-    const auto span = array.span();
+    EXPECT_TRUE(array.empty());
+    EXPECT_EQ(1, array.capacity());
+    EXPECT_EQ(0, array.size());
+}
 
-    ASSERT_EQ(nullptr, span.data());
-    ASSERT_EQ(0ul, span.size());
+TEST(Dynarray, ElementAccess) {
+    auto array = dynarray<int>(3);
 
-    const auto data = std::span(ptr, text.size());
+    array.emplace_back(10);
+    array.emplace_back(20);
+    array.emplace_back(30);
 
-    for (auto i = 0ul; i < text.size(); ++i) {
-        ASSERT_EQ(text[i], data[i]);
-    }
+    EXPECT_EQ(10, array[0]);
+    EXPECT_EQ(20, array[1]);
+    EXPECT_EQ(30, array[2]);
+}
 
-    delete[] ptr;
+TEST(Dynarray, Clear) {
+    auto array = dynarray<int>(3);
+
+    array.emplace_back(10);
+    array.emplace_back(20);
+    array.emplace_back(30);
+
+    array.clear();
+
+    EXPECT_TRUE(array.empty());
+    EXPECT_EQ(3, array.capacity());
+    EXPECT_EQ(0, array.size());
+    EXPECT_NE(nullptr, array.data());
+}
+
+TEST(Dynarray, Data) {
+    const auto array = dynarray<int> { 2, 4, 8 };
+
+    const auto* const data = array.data();
+
+    EXPECT_EQ(2, *data);
+    EXPECT_EQ(4, *(data + 1));
+    EXPECT_EQ(8, *(data + 2));
+}
+
+TEST(Dynarray, ConstIterator) {
+    const auto array = dynarray<int> { 1, 2, 3 };
+
+    auto it = array.begin();
+    const auto end = array.end();
+
+    EXPECT_EQ(1, *it++);
+    EXPECT_EQ(2, *it++);
+    EXPECT_EQ(3, *it++);
+    EXPECT_EQ(end, it);
+
+    auto i = 1;
+    for (const auto& item : array) EXPECT_EQ(i++, item);
+}
+
+TEST(Dynarray, FrontBack) {
+    const auto array = dynarray<int> { 1, 2, 3 };
+
+    const auto& front = array.front();
+    const auto& back = array.back();
+
+    EXPECT_EQ(1, front);
+    EXPECT_EQ(3, back);
+}
+
+TEST(Dynarray, Span) {
+    const auto array = dynarray<int> { 100, 200, 300 };
+    const std::span<const int> span = array;
+
+    ASSERT_EQ(3, span.size());
+    EXPECT_EQ(100, span[0]);
+    EXPECT_EQ(200, span[1]);
+    EXPECT_EQ(300, span[2]);
 }
