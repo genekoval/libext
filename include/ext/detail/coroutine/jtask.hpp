@@ -119,6 +119,10 @@ namespace ext {
             return awaitable(coroutine);
         }
 
+        /**
+         * Query if the task result is complete.
+         * Awaiting a task that is ready is guarenteed not to block/suspend.
+         */
         auto is_ready() const noexcept -> bool {
             return !coroutine || coroutine.done();
         }
@@ -127,6 +131,20 @@ namespace ext {
             return coroutine != nullptr;
         }
 
+        auto result() const & {
+            if (!coroutine) throw broken_promise();
+            return coroutine.promise().get();
+        }
+
+        auto result() const && {
+            if (!coroutine) throw broken_promise();
+            return std::move(coroutine.promise()).get();
+        }
+
+        /**
+         * Returns an awaitable that will await completion of the task without
+         * attempting to retrieve the result.
+         */
         auto when_ready() const noexcept {
             struct awaitable : awaitable_base {
                 using awaitable_base::awaitable_base;

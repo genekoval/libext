@@ -39,14 +39,16 @@ namespace ext::detail {
 
     template <>
     class result<void> {
+        bool complete = false;
         std::exception_ptr exception;
     public:
         auto get() const -> void {
             if (exception) std::rethrow_exception(exception);
+            if (!complete) throw no_result();
         }
 
         auto return_void() noexcept -> void {
-            exception = nullptr;
+            complete = true;
         }
 
         auto unhandled_exception() noexcept -> void {

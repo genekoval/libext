@@ -5,11 +5,31 @@
 
 using namespace std::literals;
 
+using ext::broken_promise;
 using ext::detached_task;
 using ext::jtask;
+using ext::no_result;
 
 namespace {
     constexpr auto fstr = "f()"sv;
+
+    class awaitable {
+        std::coroutine_handle<> coroutine;
+    public:
+        auto await_ready() const noexcept -> bool {
+            return false;
+        }
+
+        auto await_suspend(std::coroutine_handle<> coroutine) noexcept -> void {
+            this->coroutine = coroutine;
+        }
+
+        auto await_resume() const noexcept -> void {}
+
+        auto resume() const -> void {
+            coroutine.resume();
+        }
+    };
 
     struct test_error : std::exception {
         auto what() const noexcept -> const char* override {
@@ -76,4 +96,24 @@ TEST(JTask, Joinable) {
 
     const auto t2 = g(0);
     EXPECT_TRUE(t2.joinable());
+}
+
+TEST(JTask, Result) {
+    auto task = jtask<int>();
+
+    EXPECT_THROW(task.result(), broken_promise);
+
+    auto awt = awaitable();
+    task = [](awaitable& awaitable) -> jtask<int> {
+        co_await awaitable;
+        co_return 100;
+    }(awt);
+
+    EXPECT_FALSE(task.is_ready());
+    EXPECT_THROW(task.result(), no_result);
+
+    awt.resume();
+
+    EXPECT_TRUE(task.is_ready());
+    EXPECT_EQ(100, task.result());
 }
