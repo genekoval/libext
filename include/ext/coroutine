@@ -1,6 +1,7 @@
 #include "detail/coroutine/detached_task.hpp"
 #include "detail/coroutine/generator.hpp"
 #include "detail/coroutine/jtask.hpp"
+#include "detail/coroutine/race.hpp"
 #include "detail/coroutine/task.hpp"
 
 // vim: ft=cpp
