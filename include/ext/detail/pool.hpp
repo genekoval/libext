@@ -7,65 +7,6 @@
 #include <vector>
 
 namespace ext {
-    namespace detail {
-        template <typename T>
-        class pool;
-    }
-
-    template <typename T>
-    class pool_item final {
-        friend class detail::pool<T>;
-
-        std::optional<T> item;
-        std::optional<std::reference_wrapper<detail::pool<T>>> origin;
-
-        pool_item(T&& item, detail::pool<T>& origin) :
-            item(std::forward<T>(item)),
-            origin(origin)
-        {}
-    public:
-        pool_item() = default;
-
-        pool_item(const pool_item&) = delete;
-
-        pool_item(pool_item&& other) :
-            item(std::exchange(other.item, {})),
-            origin(std::exchange(other.origin, {}))
-        {}
-
-        ~pool_item() {
-            if (!origin) return;
-
-            auto& pool = origin->get();
-            pool.checkin(std::move(item).value());
-        }
-
-        auto operator=(const pool_item&) -> pool_item& = delete;
-
-        auto operator=(pool_item&& other) noexcept -> pool_item& {
-            item = std::exchange(other.item, {});
-            origin = std::exchange(other.origin, {});
-
-            return *this;
-        }
-
-        auto operator->() const noexcept -> const T* {
-            return &*item;
-        }
-
-        auto operator->() noexcept -> T* {
-            return &*item;
-        }
-
-        auto operator*() const& noexcept -> const T& {
-            return *item;
-        }
-
-        auto operator*() & noexcept -> T& {
-            return *item;
-        }
-    };
-
     struct pool_options {
         // Use the greatest possible value by default.
         std::size_t max_size = -1;
@@ -73,112 +14,253 @@ namespace ext {
 
     namespace detail {
         template <typename T>
-        class pool {
-            friend class pool_item<T>;
+        struct pool_value {
+            using type = T;
+        };
 
-            std::vector<T> storage;
+        template <typename T>
+        struct pool_value<ext::task<T>> {
+            using type = T;
+        };
+    };
+
+    template <typename Provider>
+    struct pool_value {
+        using type = typename detail::pool_value<
+            decltype(std::declval<Provider>().provide())
+        >::type;
+    };
+
+    template <typename Provider>
+    concept pool_provider = requires(Provider&& provider) {
+        { provider.provide() };
+    };
+
+    template <typename Provider>
+    concept pool_provider_checkin = requires(
+        Provider provider,
+        typename pool_value<Provider>::type& t
+    ) {
+        { provider.checkin(t) } -> std::same_as<bool>;
+    };
+
+    template <typename Provider>
+    concept pool_provider_checkout = requires(
+        Provider provider,
+        typename pool_value<Provider>::type& t
+    ) {
+        { provider.checkout(t) } -> std::same_as<bool>;
+    };
+
+    template <typename Provider>
+    concept pool_provider_async = requires(Provider provider) {
+        { provider.provide() } ->
+            std::same_as<ext::task<typename pool_value<Provider>::type>>;
+    };
+
+    template <typename Provider>
+    concept pool_provider_sync = requires(Provider provider) {
+        { provider.provide() } ->
+            std::same_as<typename pool_value<Provider>::type>;
+    };
+
+    template <pool_provider Provider>
+    struct pool;
+
+    namespace detail {
+        template <typename T>
+        struct pool;
+
+        template <typename T, typename Provider>
+        struct pool_type {
+            using type = ext::pool<Provider>;
+        };
+
+        template <typename T>
+        struct pool_type<T, void> {
+            using type = pool<T>;
+        };
+    }
+
+    template <typename T, typename Provider = void>
+    class pool_item final {
+        using pool = typename detail::pool_type<T, Provider>::type;
+
+        std::optional<T> storage;
+        pool* origin = nullptr;
+    public:
+        pool_item() = default;
+
+        pool_item(T&& t, pool& origin) :
+            storage(std::forward<T>(t)),
+            origin(&origin)
+        {}
+
+        pool_item(const pool_item&) = delete;
+
+        pool_item(pool_item&& other) :
+            storage(std::exchange(other.storage, std::nullopt)),
+            origin(std::exchange(other.origin, nullptr))
+        {}
+
+        ~pool_item() {
+            checkin();
+        }
+
+        auto operator=(const pool_item&) -> pool_item& = delete;
+
+        auto operator=(pool_item&& other) -> pool_item& {
+            if (std::addressof(other) != this) {
+                checkin();
+
+                storage = std::exchange(other.storage, std::nullopt);
+                origin = std::exchange(other.origin, nullptr);
+            }
+
+            return *this;
+        }
+
+        auto operator->() const noexcept -> const T* {
+            return &*storage;
+        }
+
+        auto operator->() noexcept -> T* {
+            return &*storage;
+        }
+
+        auto operator*() const& noexcept -> const T& {
+            return *storage;
+        }
+
+        auto operator*() & noexcept -> T& {
+            return *storage;
+        }
+
+        explicit operator bool() const noexcept {
+            return has_value();
+        }
+
+        auto checkin() noexcept -> void {
+            if (!origin) return;
+
+            origin->checkin(*std::exchange(storage, std::nullopt));
+            origin = nullptr;
+        }
+
+        auto has_value() const noexcept -> bool {
+            return storage.has_value();
+        }
+
+        auto release() noexcept -> std::optional<T> {
+            origin = nullptr;
+            return std::exchange(storage, std::nullopt);
+        }
+
+        auto reset() noexcept -> void {
+            storage.reset();
+            origin = nullptr;
+        }
+    };
+
+    namespace detail {
+        template <typename T, typename Provider>
+        struct item_type {
+            using type = pool_item<T, void>;
+        };
+
+        template <typename T, pool_provider_checkin Provider>
+        struct item_type<T, Provider> {
+            using type = pool_item<T, Provider>;
+        };
+
+        template <typename T>
+        struct pool {
+            const pool_options config;
+
+            friend pool_item<T>;
         protected:
-            pool_options config;
+            std::vector<T> storage;
 
-            auto checkout() -> std::optional<pool_item<T>> {
-                if (storage.empty()) return {};
-
-                auto result = make_item(std::move(storage.back()));
-
-                storage.pop_back();
-                return result;
-            }
-
-            auto make_item(T&& t) -> pool_item<T> {
-                return pool_item(std::forward<T>(t), *this);
-            }
-        public:
             pool() = default;
 
-            pool(pool_options&& config) :
-                config(std::forward<pool_options>(config))
-            {}
-
-            pool(const pool&) = delete;
-
-            pool(pool&&) = delete;
-
-            auto operator=(const pool&) -> pool& = delete;
-
-            auto operator=(pool&&) -> pool& = delete;
-
+            pool(const pool_options& config) : config(config) {}
+        private:
             auto checkin(T&& t) noexcept -> void {
                 if (storage.size() < config.max_size) {
                     storage.emplace_back(std::forward<T>(t));
                 }
             }
-
-            auto empty() const noexcept -> bool {
-                return storage.empty();
-            }
-
-            auto max_size() const noexcept -> std::size_t {
-                return config.max_size;
-            }
-
-            auto size() const noexcept -> std::size_t {
-                return storage.size();
-            }
         };
     }
 
-    template <typename T, typename Provider>
-    concept pool_provider =
-        requires(Provider provider) {
-            { provider.provide() } -> std::same_as<T>;
-        } &&
-        requires { Provider{}; };
+    template <pool_provider Provider>
+    struct pool final :
+        detail::pool<typename pool_value<Provider>::type>
+    {
+        using value_type = typename pool_value<Provider>::type;
+        using item = typename detail::item_type<value_type, Provider>::type;
 
-    template <typename T, typename Provider>
-    requires pool_provider<T, Provider>
-    class pool final : public detail::pool<T> {
+        friend item;
+
         Provider provider;
+    private:
+        auto checkin(value_type&& t) noexcept -> void {
+            if (
+                this->storage.size() < this->config.max_size &&
+                provider.checkin(t)
+            ) this->storage.emplace_back(std::forward<value_type>(t));
+        }
+
+        auto try_checkout() -> std::optional<item> {
+            while (!this->storage.empty()) {
+                if constexpr (pool_provider_checkout<Provider>) {
+                    if (!provider.checkout(this->storage.back())) {
+                        this->storage.pop_back();
+                        continue;
+                    }
+                }
+
+                auto result = item(std::move(this->storage.back()), *this);
+                this->storage.pop_back();
+                return result;
+            }
+
+            return std::nullopt;
+        }
     public:
         pool() = default;
 
-        pool(Provider&& provider, pool_options&& config = {}) :
-            detail::pool<T>(std::forward<pool_options>(config)),
-            provider(std::forward<Provider>(provider))
+        template <typename... Args>
+        pool(const pool_options& config, Args&&... args) :
+            detail::pool<value_type>(config),
+            provider(std::forward<Args>(args)...)
         {}
 
-        auto checkout() -> pool_item<T> {
-            auto cached = detail::pool<T>::checkout();
-            if (cached) return std::move(cached).value();
+        pool(const pool&) = delete;
 
-            return detail::pool<T>::make_item(provider.provide());
+        pool(pool&&) = delete;
+
+        auto operator=(const pool&) -> pool& = delete;
+
+        auto operator=(pool&&) -> pool& = delete;
+
+        auto checkout() -> item requires pool_provider_sync<Provider> {
+            if (auto item = try_checkout()) return std::move(*item);
+            return item(provider.provide(), *this);
         }
-    };
 
-    template <typename T, typename Provider>
-    concept async_pool_provider =
-        requires(Provider provider) {
-            { provider.provide() } -> std::same_as<task<T>>;
-        } &&
-        requires { Provider{}; };
+        auto checkout() -> ext::task<item>
+        requires pool_provider_async<Provider> {
+            if (auto item = try_checkout()) co_return std::move(*item);
+            co_return item(co_await provider.provide(), *this);
+        }
 
-    template <typename T, typename Provider>
-    requires async_pool_provider<T, Provider>
-    class async_pool final : public detail::pool<T> {
-        Provider provider;
-    public:
-        async_pool() = default;
+        auto empty() const noexcept -> bool {
+            return this->storage.empty();
+        }
 
-        async_pool(Provider&& provider, pool_options&& config = {}) :
-            detail::pool<T>(std::forward<pool_options>(config)),
-            provider(std::forward<Provider>(provider))
-        {}
-
-        auto checkout() -> task<pool_item<T>> {
-            auto cached = detail::pool<T>::checkout();
-            if (cached) co_return std::move(cached).value();
-
-            auto t = co_await provider.provide();
-            co_return detail::pool<T>::make_item(std::move(t));
+        auto size() const noexcept -> std::size_t {
+            return this->storage.size();
         }
     };
 }

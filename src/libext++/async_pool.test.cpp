@@ -3,6 +3,8 @@
 
 #include <gtest/gtest.h>
 
+using ext::pool_options;
+
 namespace {
     class provider final {
         int counter = 0;
@@ -12,14 +14,17 @@ namespace {
         }
     };
 
-    using int_pool = ext::async_pool<int, provider>;
+    using int_pool = ext::pool<provider>;
+
+    static_assert(ext::pool_provider_async<provider>);
+    static_assert(std::is_same_v<int_pool::value_type, int>);
 }
 
 class AsyncPoolTest : public testing::Test {
 protected:
     int_pool pool;
 
-    AsyncPoolTest() : pool(provider(), ext::pool_options { .max_size = 2 }) {}
+    AsyncPoolTest() : pool(pool_options { .max_size = 2 }) {}
 };
 
 TEST_F(AsyncPoolTest, Checkout) {
