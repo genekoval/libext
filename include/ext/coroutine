@@ -1,4 +1,5 @@
 #include "detail/coroutine/continuation.hpp"
+#include "detail/coroutine/counter.hpp"
 #include "detail/coroutine/detached_task.hpp"
 #include "detail/coroutine/generator.hpp"
 #include "detail/coroutine/jtask.hpp"
