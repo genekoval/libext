@@ -38,10 +38,6 @@ namespace ext {
 
         std::coroutine_handle<> coroutine;
         std::variant<std::monostate, T, std::exception_ptr> value;
-
-        auto resume() -> void {
-            std::exchange(coroutine, nullptr).resume();
-        }
     public:
         continuation() = default;
 
@@ -74,25 +70,28 @@ namespace ext {
                 using awaitable_base::awaitable_base;
 
                 decltype(auto) await_resume() {
-                    return std::move(*this->get());
+                    return std::move(*this->res());
                 }
             };
 
             return awaitable(this);
         }
 
-        auto awaiting() const noexcept -> bool{
+        auto awaiting() const noexcept -> bool {
             return coroutine != nullptr;
         }
 
-        auto resume(T&& t) -> void {
-            value.emplace(std::forward<T>(t));
-            resume();
+        template <std::convertible_to<T> U>
+        auto resume(U&& u) -> void {
+            if (!coroutine) throw broken_promise();
+            value.template emplace<T>(std::forward<U>(u));
+            std::exchange(coroutine, nullptr).resume();
         }
 
         auto resume(std::exception_ptr exception) -> void {
+            if (!coroutine) throw broken_promise();
             value.emplace(exception);
-            resume();
+            std::exchange(coroutine, nullptr).resume();
         }
     };
 
@@ -110,8 +109,12 @@ namespace ext {
                 return false;
             }
 
-            auto await_suspend(std::coroutine_handle<> coroutine) -> void {
-                cont->coroutine = coroutine;
+            auto await_suspend(
+                std::coroutine_handle<> coroutine
+            ) -> std::coroutine_handle<> {
+                auto tmp = std::exchange(cont->coroutine, coroutine);
+                if (tmp) return tmp;
+                return std::noop_coroutine();
             }
 
             auto await_resume() -> void {
@@ -142,12 +145,14 @@ namespace ext {
         }
 
         auto resume() -> void {
+            if (!coroutine) throw broken_promise();
             std::exchange(coroutine, nullptr).resume();
         }
 
         auto resume(std::exception_ptr exception) -> void {
+            if (!coroutine) throw broken_promise();
             this->exception = exception;
-            resume();
+            std::exchange(coroutine, nullptr).resume();
         }
     };
 }
