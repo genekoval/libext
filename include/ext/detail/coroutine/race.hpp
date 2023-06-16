@@ -29,13 +29,20 @@ namespace ext {
                     auto await_suspend(
                         std::coroutine_handle<Promise> coroutine
                     ) const noexcept -> std::coroutine_handle<> {
-                        return coroutine.promise().continuation;
+                        auto& promise = coroutine.promise();
+
+                        // If the `done` pointer is not null, the race object
+                        // is still in the process of starting up.
+                        if (auto* done = promise.done) *done = true;
+
+                        return promise.continuation;
                     }
 
                     auto await_resume() const noexcept -> void {}
                 };
 
                 std::coroutine_handle<> continuation;
+                bool* done = nullptr;
 
                 auto get_return_object() noexcept -> task {
                     return task(coroutine_handle::from_promise(*this));
@@ -77,13 +84,20 @@ namespace ext {
 
             auto start(
                 std::coroutine_handle<> continuation
-            ) const noexcept -> void {
-                coroutine.promise().continuation = continuation;
+            ) const noexcept -> bool {
+                auto done = false;
+                auto& promise = coroutine.promise();
+
+                promise.continuation = continuation;
+                promise.done = &done;
+
                 coroutine.resume();
+
+                if (!done) promise.done = nullptr;
+                return done;
             }
         };
 
-        bool done = false;
         result_type result;
         std::array<task, sizeof...(Tasks)> tasks;
 
@@ -98,15 +112,7 @@ namespace ext {
         template <std::size_t I, typename T>
         auto run(T task) -> race::task {
             co_await task.when_ready();
-            done = true;
             result = result_type(std::in_place_index<I>, std::move(task));
-        }
-
-        auto start_tasks(std::coroutine_handle<> coroutine) -> void {
-            for (const auto& task : tasks) {
-                task.start(coroutine);
-                if (done) return;
-            }
         }
     public:
         race(Tasks&&... tasks) {
@@ -121,7 +127,9 @@ namespace ext {
         }
 
         auto await_suspend(std::coroutine_handle<> coroutine) -> void {
-            start_tasks(coroutine);
+            for (const auto& task : tasks) {
+                if (task.start(coroutine)) return;
+            }
         }
 
         auto await_resume() -> result_type {
