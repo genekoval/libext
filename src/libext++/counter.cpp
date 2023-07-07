@@ -7,42 +7,55 @@ namespace ext {
         return value > 0;
     }
 
-    auto counter::await_ready() const noexcept -> bool {
-        return value == 0;
+    auto counter::await(unsigned long threshold) -> awaitable {
+        this->threshold = threshold;
+        return awaitable(*this);
     }
-
-    auto counter::await_suspend(
-        std::coroutine_handle<> coroutine
-    ) noexcept -> void {
-        this->coroutine = coroutine;
-    }
-
-    auto counter::await_resume() const noexcept -> void {}
 
     auto counter::count() const noexcept -> std::size_t {
         return value;
     }
 
     auto counter::decrement() noexcept -> void {
-        if (--value == 0 && coroutine && !coroutine.done()) coroutine.resume();
+        if (
+            --value <= threshold &&
+            coroutine &&
+            !coroutine.done()
+        ) coroutine.resume();
     }
 
-    auto counter::increment() noexcept -> counter_item {
+    auto counter::increment() noexcept -> guard {
         ++value;
-        return counter_item(this);
+        return guard(this);
     }
 
-    counter_item::counter_item(counter* origin) : origin(origin) {}
+    counter::awaitable::awaitable(ext::counter& counter) : counter(counter) {}
 
-    counter_item::counter_item(counter_item&& other) :
+    auto counter::awaitable::await_ready() const noexcept -> bool {
+        return counter.value <= counter.threshold;
+    }
+
+    auto counter::awaitable::await_suspend(
+        std::coroutine_handle<> coroutine
+    ) noexcept -> void {
+        counter.coroutine = coroutine;
+    }
+
+    auto counter::awaitable::await_resume() const noexcept -> void {
+        counter.coroutine = nullptr;
+    }
+
+    counter::guard::guard(counter* origin) : origin(origin) {}
+
+    counter::guard::guard(guard&& other) :
         origin(std::exchange(other.origin, nullptr))
     {}
 
-    counter_item::~counter_item() {
+    counter::guard::~guard() {
         if (origin) origin->decrement();
     }
 
-    auto counter_item::operator=(counter_item&& other) -> counter_item& {
+    auto counter::guard::operator=(guard&& other) -> guard& {
         if (std::addressof(other) != this) {
             if (origin) origin->decrement();
             origin = std::exchange(other.origin, nullptr);

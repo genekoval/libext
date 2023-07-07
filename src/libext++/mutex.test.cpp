@@ -42,7 +42,7 @@ TEST(Mutex, MultiLock) {
             for (auto i = 0; i < 5; ++i) start(i);
         }
 
-        co_await counter;
+        co_await counter.await();
 
         EXPECT_EQ(5, ids.size());
 
