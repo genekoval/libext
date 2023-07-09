@@ -5,48 +5,40 @@ namespace ext {
         return awaiter(*this);
     }
 
-    auto mutex::locked() const noexcept -> bool {
-        return !ready;
-    }
-
     auto mutex::unlock() noexcept -> void {
-        if (coroutines.empty()) {
-            ready = true;
-            return;
-        }
-
-        const auto next = coroutines.front();
-        coroutines.pop();
-
-        next.resume();
+        if (awaiters.empty()) locked = false;
+        else awaiters.pop();
     }
 
     auto mutex::queue_size() const noexcept -> std::size_t {
-        return coroutines.size();
+        return awaiters.size();
+    }
+
+    auto mutex::unlocked() const noexcept -> bool {
+        return !locked;
     }
 
     mutex::awaiter::awaiter(mutex& mut) : mut(mut) {}
 
     auto mutex::awaiter::await_ready() const noexcept -> bool {
-        if (!mut.ready) return false;
-
-        mut.ready = false;
-        return true;
+        if (mut.locked) return false;
+        return mut.locked = true;
     }
 
     auto mutex::awaiter::await_suspend(
         std::coroutine_handle<> coroutine
     ) -> void {
-        mut.coroutines.emplace(coroutine);
+        this->coroutine = coroutine;
+        mut.awaiters.enqueue(*this);
     }
 
     auto mutex::awaiter::await_resume() -> guard {
         return guard(mut);
     }
 
-    mutex::guard::guard(mutex& mut) : mut(mut) {}
+    mutex::guard::guard(mutex& mut) : mut(&mut) {}
 
     mutex::guard::~guard() {
-        mut.unlock();
+        if (mut) mut->unlock();
     }
 }

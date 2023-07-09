@@ -1,12 +1,11 @@
 #pragma once
 
-#include <coroutine>
-#include <queue>
+#include "awaiter_queue.hpp"
 
 namespace ext {
     class mutex {
-        std::queue<std::coroutine_handle<>> coroutines;
-        bool ready = true;
+        awaiter_queue awaiters;
+        bool locked = false;
 
         auto unlock() noexcept -> void;
     public:
@@ -17,14 +16,16 @@ namespace ext {
         class guard {
             friend class awaiter;
 
-            mutex& mut;
+            mutex* mut = nullptr;
 
             guard(mutex& mut);
         public:
+            guard() = default;
+
             ~guard();
         };
 
-        class awaiter {
+        class awaiter : awaiter_node {
             friend class mutex;
 
             mutex& mut;
@@ -35,6 +36,7 @@ namespace ext {
 
             auto await_suspend(std::coroutine_handle<> coroutine) -> void;
 
+            [[nodiscard("mutex immediately unlocked")]]
             auto await_resume() -> guard;
         };
 
@@ -48,10 +50,11 @@ namespace ext {
 
         auto operator=(mutex&&) -> mutex& = delete;
 
+        [[nodiscard("result must be awaited")]]
         auto lock() noexcept -> awaiter;
 
-        auto locked() const noexcept -> bool;
-
         auto queue_size() const noexcept -> std::size_t;
+
+        auto unlocked() const noexcept -> bool;
     };
 }

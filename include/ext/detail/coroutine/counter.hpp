@@ -62,6 +62,7 @@ namespace ext {
 
         auto count() const noexcept -> unsigned long;
 
+        [[nodiscard("counter immediately decremented")]]
         auto increment() noexcept -> guard;
 
         auto await(unsigned long threshold = 0) -> awaitable;
