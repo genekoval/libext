@@ -22,7 +22,17 @@ namespace ext {
         public:
             guard() = default;
 
+            guard(const guard&) = delete;
+
+            guard(guard&& other);
+
             ~guard();
+
+            auto operator=(const guard&) -> guard& = delete;
+
+            auto operator=(guard&& other) noexcept -> guard&;
+
+            auto unlock() -> void;
         };
 
         class awaiter : awaiter_node {

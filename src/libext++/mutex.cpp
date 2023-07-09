@@ -1,5 +1,7 @@
 #include <ext/detail/coroutine/mutex.hpp>
 
+#include <utility>
+
 namespace ext {
     auto mutex::lock() noexcept -> awaiter {
         return awaiter(*this);
@@ -38,7 +40,25 @@ namespace ext {
 
     mutex::guard::guard(mutex& mut) : mut(&mut) {}
 
+    mutex::guard::guard(guard&& other) :
+        mut(std::exchange(other.mut, nullptr))
+    {}
+
     mutex::guard::~guard() {
+        unlock();
+    }
+
+    auto mutex::guard::operator=(guard&& other) noexcept -> guard& {
+        if (std::addressof(other) != this) {
+            unlock();
+            mut = std::exchange(other.mut, nullptr);
+        }
+
+        return *this;
+    }
+
+    auto mutex::guard::unlock() -> void {
+        auto* const mut = std::exchange(this->mut, nullptr);
         if (mut) mut->unlock();
     }
 }
