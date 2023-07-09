@@ -90,7 +90,7 @@ namespace ext {
 
         auto resume(std::exception_ptr exception) -> void {
             if (!coroutine) throw broken_promise();
-            value.emplace(exception);
+            value = exception;
             std::exchange(coroutine, nullptr).resume();
         }
     };
