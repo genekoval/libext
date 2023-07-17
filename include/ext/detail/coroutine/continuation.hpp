@@ -99,6 +99,7 @@ namespace ext {
     class continuation<void> final {
         std::coroutine_handle<> coroutine;
         std::exception_ptr exception;
+        bool ready = false;
 
         class awaitable {
             continuation* cont;
@@ -106,7 +107,7 @@ namespace ext {
             awaitable(continuation* cont) : cont(cont) {}
 
             auto await_ready() const noexcept -> bool {
-                return false;
+                return cont->ready;
             }
 
             auto await_suspend(
@@ -118,6 +119,7 @@ namespace ext {
             }
 
             auto await_resume() -> void {
+                cont->ready = false;
                 if (cont->exception) std::rethrow_exception(cont->exception);
             }
         };
@@ -145,14 +147,13 @@ namespace ext {
         }
 
         auto resume() -> void {
-            if (!coroutine) throw broken_promise();
-            std::exchange(coroutine, nullptr).resume();
+            if (coroutine) std::exchange(coroutine, nullptr).resume();
+            else ready = true;
         }
 
         auto resume(std::exception_ptr exception) -> void {
-            if (!coroutine) throw broken_promise();
             this->exception = exception;
-            std::exchange(coroutine, nullptr).resume();
+            resume();
         }
     };
 }
