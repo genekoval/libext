@@ -101,10 +101,35 @@ namespace ext {
         std::exception_ptr exception;
         bool ready = false;
 
-        class awaitable {
+        class awaitable final {
+            std::coroutine_handle<> coroutine;
             continuation* cont;
         public:
             awaitable(continuation* cont) : cont(cont) {}
+
+            awaitable(const awaitable&) = delete;
+
+            awaitable(awaitable&& other) :
+                coroutine(std::exchange(other.coroutine, nullptr)),
+                cont(other.cont)
+            {}
+
+            ~awaitable() {
+                if (cont->coroutine == coroutine) {
+                    cont->coroutine = nullptr;
+                }
+            }
+
+            auto operator=(const awaitable&) -> awaitable& = delete;
+
+            auto operator=(awaitable&& other) -> awaitable& {
+                if (std::addressof(other) != this) {
+                    std::destroy_at(this);
+                    std::construct_at(this, std::forward<awaitable>(other));
+                }
+
+                return *this;
+            }
 
             auto await_ready() const noexcept -> bool {
                 return cont->ready;
@@ -113,9 +138,9 @@ namespace ext {
             auto await_suspend(
                 std::coroutine_handle<> coroutine
             ) -> std::coroutine_handle<> {
+                this->coroutine = coroutine;
                 auto tmp = std::exchange(cont->coroutine, coroutine);
-                if (tmp) return tmp;
-                return std::noop_coroutine();
+                return tmp ? tmp : std::noop_coroutine();
             }
 
             auto await_resume() -> void {
