@@ -1,0 +1,3 @@
+#include "detail/scope.hpp"
+
+// vim: ft=cpp
