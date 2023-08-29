@@ -137,7 +137,13 @@ namespace ext {
 
             auto await_resume() -> void {
                 cont->ready = false;
-                if (cont->exception) std::rethrow_exception(cont->exception);
+
+                if (cont->exception) {
+                    std::rethrow_exception(std::exchange(
+                        cont->exception,
+                        nullptr
+                    ));
+                }
             }
         };
     public:
