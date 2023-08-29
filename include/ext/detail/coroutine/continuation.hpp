@@ -67,6 +67,15 @@ namespace ext {
             return awaiting();
         }
 
+        template <std::convertible_to<T> U>
+        auto operator()(U&& u) -> void {
+            resume(std::forward<U>(u));
+        }
+
+        auto operator()(std::exception_ptr exception) -> void {
+            resume(exception);
+        }
+
         auto operator co_await() noexcept {
             return awaitable(this);
         }
@@ -159,6 +168,14 @@ namespace ext {
 
         explicit operator bool() const noexcept {
             return awaiting();
+        }
+
+        auto operator()() -> void {
+            resume();
+        }
+
+        auto operator()(std::exception_ptr exception) -> void {
+            resume(exception);
         }
 
         auto operator co_await() noexcept {
