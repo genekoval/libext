@@ -10,34 +10,48 @@
 namespace ext {
     template <typename T = void>
     class continuation final {
-        friend struct awaitable_base;
+        friend struct awaitable;
 
-        class awaitable_base {
+        class awaitable {
             continuation* cont;
-        protected:
-            auto res() -> T* {
-                if (auto* val = std::get_if<T>(&cont->value)) return val;
-
-                if (auto* ex = std::get_if<std::exception_ptr>(&cont->value)) {
-                    std::rethrow_exception(*ex);
-                }
-
-                throw no_result();
-            }
         public:
-            awaitable_base(continuation* cont) : cont(cont) {}
+            awaitable(continuation* cont) : cont(cont) {}
+
+            ~awaitable() {
+                if (cont->coroutine) cont->coroutine = nullptr;
+            }
 
             auto await_ready() const noexcept -> bool {
-                return false;
+                return !std::holds_alternative<std::monostate>(cont->value);
             }
 
             auto await_suspend(std::coroutine_handle<> coroutine) -> void {
                 cont->coroutine = coroutine;
             }
+
+            auto await_resume() -> T {
+                if (auto* val = std::get_if<T>(&cont->value)) {
+                    auto result = std::move(*val);
+                    cont->value = std::monostate();
+                    return result;
+                }
+
+                if (auto* ex = std::get_if<std::exception_ptr>(&cont->value)) {
+                    auto result = std::move(*ex);
+                    cont->value = std::monostate();
+                    std::rethrow_exception(result);
+                }
+
+                throw no_result();
+            }
         };
 
         std::coroutine_handle<> coroutine;
         std::variant<std::monostate, T, std::exception_ptr> value;
+
+        auto resume() -> void {
+            if (coroutine) std::exchange(coroutine, nullptr).resume();
+        }
     public:
         continuation() = default;
 
@@ -53,27 +67,7 @@ namespace ext {
             return awaiting();
         }
 
-        auto operator co_await() & noexcept {
-            struct awaitable : awaitable_base {
-                using awaitable_base::awaitable_base;
-
-                decltype(auto) await_resume() {
-                    return *this->res();
-                }
-            };
-
-            return awaitable(this);
-        }
-
-        auto operator co_await() && noexcept {
-            struct awaitable : awaitable_base {
-                using awaitable_base::awaitable_base;
-
-                decltype(auto) await_resume() {
-                    return std::move(*this->res());
-                }
-            };
-
+        auto operator co_await() noexcept {
             return awaitable(this);
         }
 
@@ -83,15 +77,13 @@ namespace ext {
 
         template <std::convertible_to<T> U>
         auto resume(U&& u) -> void {
-            if (!coroutine) throw broken_promise();
             value.template emplace<T>(std::forward<U>(u));
-            std::exchange(coroutine, nullptr).resume();
+            resume();
         }
 
         auto resume(std::exception_ptr exception) -> void {
-            if (!coroutine) throw broken_promise();
             value = exception;
-            std::exchange(coroutine, nullptr).resume();
+            resume();
         }
     };
 
