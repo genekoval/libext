@@ -29,20 +29,21 @@ namespace ext {
                     auto await_suspend(
                         std::coroutine_handle<Promise> coroutine
                     ) const noexcept -> std::coroutine_handle<> {
-                        auto& promise = coroutine.promise();
+                        const auto continuation = coroutine
+                            .promise()
+                            .context
+                            .coroutine;
 
-                        // If the `done` pointer is not null, the race object
-                        // is still in the process of starting up.
-                        if (auto* done = promise.done) *done = true;
-
-                        return promise.continuation;
+                        if (continuation) return continuation;
+                        return std::noop_coroutine();
                     }
 
                     auto await_resume() const noexcept -> void {}
                 };
 
-                std::coroutine_handle<> continuation;
-                bool* done = nullptr;
+                race& context;
+
+                promise_type(race& context, auto&) : context(context) {}
 
                 auto get_return_object() noexcept -> task {
                     return task(coroutine_handle::from_promise(*this));
@@ -82,22 +83,16 @@ namespace ext {
                 return *this;
             }
 
-            auto start(
-                std::coroutine_handle<> continuation
-            ) const noexcept -> bool {
-                auto done = false;
-                auto& promise = coroutine.promise();
+            auto done() const noexcept -> bool {
+                return coroutine.done();
+            }
 
-                promise.continuation = continuation;
-                promise.done = &done;
-
+            auto resume() const -> void {
                 coroutine.resume();
-
-                if (!done) promise.done = nullptr;
-                return done;
             }
         };
 
+        std::coroutine_handle<> coroutine;
         result_type result;
         std::array<task, sizeof...(Tasks)> tasks;
 
@@ -122,14 +117,25 @@ namespace ext {
             );
         }
 
+        race(const race&) = delete;
+
+        race(race&&) = delete;
+
+        auto operator=(const race&) -> race& = delete;
+
+        auto operator=(race&&) -> race& = delete;
+
         auto await_ready() noexcept -> bool {
+            for (const auto& task : tasks) {
+                task.resume();
+                if (task.done()) return true;
+            }
+
             return false;
         }
 
         auto await_suspend(std::coroutine_handle<> coroutine) -> void {
-            for (const auto& task : tasks) {
-                if (task.start(coroutine)) return;
-            }
+            this->coroutine = coroutine;
         }
 
         auto await_resume() -> result_type {
