@@ -9,8 +9,6 @@ namespace ext {
     public:
         scope_exit(EF&& ef) : ef(std::forward<EF>(ef)) {}
 
-        ~scope_exit() {
-            ef();
-        }
+        ~scope_exit() { ef(); }
     };
 }

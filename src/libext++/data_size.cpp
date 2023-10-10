@@ -5,7 +5,7 @@
 namespace ext {
     auto operator<<(std::ostream& os, byte_multiple multiple) -> std::ostream& {
         switch (multiple) {
-            case byte_multiple::B:   os << "B";   break;
+            case byte_multiple::B: os << "B"; break;
             case byte_multiple::KiB: os << "KiB"; break;
             case byte_multiple::MiB: os << "MiB"; break;
             case byte_multiple::GiB: os << "GiB"; break;

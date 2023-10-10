@@ -40,9 +40,7 @@ namespace ext {
                 return {};
             }
 
-            auto final_suspend() noexcept -> std::suspend_always {
-                return {};
-            }
+            auto final_suspend() noexcept -> std::suspend_always { return {}; }
 
             auto unhandled_exception() -> void {
                 value = std::current_exception();
@@ -67,15 +65,15 @@ namespace ext {
             other.coroutine = nullptr;
         }
 
-        ~generator() { if (coroutine) coroutine.destroy(); }
+        ~generator() {
+            if (coroutine) coroutine.destroy();
+        }
 
         auto operator=(const generator&) -> generator& = delete;
 
         auto operator=(generator&& other) noexcept -> generator& {
             if (std::addressof(other) != this) {
-                if (coroutine) {
-                    coroutine.destroy();
-                }
+                if (coroutine) { coroutine.destroy(); }
 
                 coroutine = other.coroutine;
                 other.coroutine = nullptr;

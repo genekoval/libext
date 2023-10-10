@@ -8,17 +8,14 @@
 namespace ext {
     constexpr auto byte_unit_max = 1'024u;
 
-    enum class byte_multiple {
-        B, KiB, MiB, GiB, TiB
-    };
+    enum class byte_multiple { B, KiB, MiB, GiB, TiB };
 
     constexpr auto multiples = std::array<byte_multiple, 5> {
         byte_multiple::B,
         byte_multiple::KiB,
         byte_multiple::MiB,
         byte_multiple::GiB,
-        byte_multiple::TiB
-    };
+        byte_multiple::TiB};
 
     auto operator<<(std::ostream& os, byte_multiple multiple) -> std::ostream&;
 
@@ -34,18 +31,15 @@ namespace ext {
         ) :
             bytes(bytes),
             value(value),
-            multiple(multiple)
-        {}
+            multiple(multiple) {}
     public:
         static constexpr auto format(uintmax_t bytes) -> data_size {
             if (bytes == 0) return data_size();
 
-            const auto magnitude = static_cast<int>(
-                std::log(bytes) / std::log(byte_unit_max)
-            );
-            const auto value = static_cast<double>(
-                bytes) / (1L << (magnitude * 10)
-            );
+            const auto magnitude =
+                static_cast<int>(std::log(bytes) / std::log(byte_unit_max));
+            const auto value =
+                static_cast<double>(bytes) / (1L << (magnitude * 10));
 
             try {
                 return data_size(bytes, value, multiples.at(magnitude));
@@ -66,64 +60,55 @@ namespace ext {
 
         constexpr data_size(double value, byte_multiple multiple) :
             bytes(
-                pow(
-                    byte_unit_max,
+                pow(byte_unit_max,
                     static_cast<std::underlying_type_t<byte_multiple>>(multiple)
-                ) * value
+                ) *
+                value
             ),
             value(value),
-            multiple(multiple)
-        {}
+            multiple(multiple) {}
 
         auto str(uint decimal_places) const -> std::string;
     };
 
     namespace literals {
-        constexpr auto operator""_KiB(
-            unsigned long long int value
-        ) -> unsigned long long int {
+        constexpr auto operator""_KiB(unsigned long long int value)
+            -> unsigned long long int {
             return data_size(value, byte_multiple::KiB).bytes;
         }
 
-        constexpr auto operator""_MiB(
-            unsigned long long int value
-        ) -> unsigned long long int {
+        constexpr auto operator""_MiB(unsigned long long int value)
+            -> unsigned long long int {
             return data_size(value, byte_multiple::MiB).bytes;
         }
 
-        constexpr auto operator""_GiB(
-            unsigned long long int value
-        ) -> unsigned long long int {
+        constexpr auto operator""_GiB(unsigned long long int value)
+            -> unsigned long long int {
             return data_size(value, byte_multiple::GiB).bytes;
         }
 
-        constexpr auto operator""_TiB(
-            unsigned long long int value
-        ) -> unsigned long long int {
+        constexpr auto operator""_TiB(unsigned long long int value)
+            -> unsigned long long int {
             return data_size(value, byte_multiple::TiB).bytes;
         }
 
-        constexpr auto operator""_KiB(
-            long double value
-        ) -> unsigned long long int {
+        constexpr auto operator""_KiB(long double value)
+            -> unsigned long long int {
             return data_size(value, byte_multiple::KiB).bytes;
         }
 
-        constexpr auto operator""_MiB(
-            long double value
-        ) -> unsigned long long int {
+        constexpr auto operator""_MiB(long double value)
+            -> unsigned long long int {
             return data_size(value, byte_multiple::MiB).bytes;
         }
 
-        constexpr auto operator""_GiB(
-            long double value
-        ) -> unsigned long long int {
+        constexpr auto operator""_GiB(long double value)
+            -> unsigned long long int {
             return data_size(value, byte_multiple::GiB).bytes;
         }
 
-        constexpr auto operator""_TiB(
-            long double value
-        ) -> unsigned long long int {
+        constexpr auto operator""_TiB(long double value)
+            -> unsigned long long int {
             return data_size(value, byte_multiple::TiB).bytes;
         }
     }

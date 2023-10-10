@@ -9,10 +9,8 @@ namespace ext::chrono {
         auto time = clock::to_time_t(ts.time());
 
         switch (ts.type()) {
-            case gmt:
-                return std::gmtime(&time);
-            case local:
-                return std::localtime(&time);
+            case gmt: return std::gmtime(&time);
+            case local: return std::localtime(&time);
             default:
                 throw std::runtime_error("Unhandled 'time_type' enumerator");
         }
@@ -21,8 +19,7 @@ namespace ext::chrono {
     timestamp::timestamp(std::string_view format, time_type type) :
         m_format(format),
         m_time(clock::now()),
-        m_type(type)
-    {}
+        m_type(type) {}
 
     auto timestamp::format() const -> std::string { return m_format; }
 
@@ -39,10 +36,7 @@ namespace ext::chrono {
 
     auto timestamp::type() const -> time_type { return m_type; }
 
-    auto operator<<(
-        std::ostream& os,
-        const timestamp& ts
-    ) -> std::ostream& {
+    auto operator<<(std::ostream& os, const timestamp& ts) -> std::ostream& {
         os << std::put_time(to_tm(ts), ts.format().c_str());
         return os;
     }

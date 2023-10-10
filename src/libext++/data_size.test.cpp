@@ -72,26 +72,14 @@ TEST(DataSize, FormatGibibtyesWithRound) {
     ASSERT_EQ("2.36 GiB", size.str(2));
 }
 
-TEST(DataSize, LiteralKibibyte) {
-    ASSERT_EQ(1'024, 1_KiB);
-}
+TEST(DataSize, LiteralKibibyte) { ASSERT_EQ(1'024, 1_KiB); }
 
-TEST(DataSize, LiteralMebibyte) {
-    ASSERT_EQ(1'048'576, 1_MiB);
-}
+TEST(DataSize, LiteralMebibyte) { ASSERT_EQ(1'048'576, 1_MiB); }
 
-TEST(DataSize, LiteralGibibyte) {
-    ASSERT_EQ(1'073'741'824, 1_GiB);
-}
+TEST(DataSize, LiteralGibibyte) { ASSERT_EQ(1'073'741'824, 1_GiB); }
 
-TEST(DataSize, LiteralTebibyte) {
-    ASSERT_EQ(1'099'511'627'776, 1_TiB);
-}
+TEST(DataSize, LiteralTebibyte) { ASSERT_EQ(1'099'511'627'776, 1_TiB); }
 
-TEST(DataSize, LiteralKibibyteMultiple) {
-    ASSERT_EQ(8'192, 8_KiB);
-}
+TEST(DataSize, LiteralKibibyteMultiple) { ASSERT_EQ(8'192, 8_KiB); }
 
-TEST(DataSize, LiteralGibibyteMultiple) {
-    ASSERT_EQ(2'530'809'479, 2.357_GiB);
-}
+TEST(DataSize, LiteralGibibyteMultiple) { ASSERT_EQ(2'530'809'479, 2.357_GiB); }

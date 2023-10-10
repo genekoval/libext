@@ -21,9 +21,8 @@ namespace ext {
         public:
             auto await_ready() const noexcept -> bool;
 
-            auto await_suspend(
-                std::coroutine_handle<> coroutine
-            ) noexcept -> void;
+            auto await_suspend(std::coroutine_handle<> coroutine) noexcept
+                -> void;
 
             auto await_resume() const noexcept -> void;
         };

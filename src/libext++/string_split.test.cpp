@@ -76,11 +76,7 @@ TEST(StringSplit, Vector) {
 
 TEST(StringSplit, Loop) {
     constexpr auto seq = "one two three";
-    constexpr auto array = std::array<decltype(seq), 3> {
-        "one",
-        "two",
-        "three"
-    };
+    constexpr auto array = std::array<decltype(seq), 3> {"one", "two", "three"};
 
     auto index = 0;
     for (const auto token : ext::string_range(seq, " ")) {

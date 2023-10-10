@@ -8,9 +8,7 @@ namespace {
     class provider final {
         int counter = 0;
     public:
-        auto provide() -> int {
-            return counter++;
-        }
+        auto provide() -> int { return counter++; }
     };
 
     using int_pool = ext::pool<provider>;
@@ -23,7 +21,7 @@ class PoolTest : public testing::Test {
 protected:
     int_pool pool;
 
-    PoolTest() : pool(pool_options { .max_size = 2 }) {}
+    PoolTest() : pool(pool_options {.max_size = 2}) {}
 };
 
 TEST_F(PoolTest, Checkout) {

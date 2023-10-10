@@ -21,13 +21,7 @@ namespace ext {
         ::group* result = nullptr;
 
         if (auto* gid = std::get_if<gid_t>(&value)) {
-            ret = getgrgid_r(
-                *gid,
-                &data,
-                buffer.get(),
-                buflen,
-                &result
-            );
+            ret = getgrgid_r(*gid, &data, buffer.get(), buflen, &result);
         }
         else if (auto* group_name = std::get_if<std::string>(&value)) {
             ret = getgrnam_r(
@@ -40,35 +34,35 @@ namespace ext {
         }
 
         if (ret != 0) {
-            std::visit([ret](auto&& arg) -> void {
-                throw std::system_error(
-                    ret,
-                    std::generic_category(),
-                    fmt::format("failed to look up group ({})", arg)
-                );
-            }, value);
+            std::visit(
+                [ret](auto&& arg) -> void {
+                    throw std::system_error(
+                        ret,
+                        std::generic_category(),
+                        fmt::format("failed to look up group ({})", arg)
+                    );
+                },
+                value
+            );
         }
 
         if (!result) {
-            std::visit([](auto&& arg) -> void {
-                throw std::runtime_error(fmt::format(
-                    "group ({}) does not exist", arg
-                ));
-            }, value);
+            std::visit(
+                [](auto&& arg) -> void {
+                    throw std::runtime_error(
+                        fmt::format("group ({}) does not exist", arg)
+                    );
+                },
+                value
+            );
         }
     }
 
-    auto group::gid() const -> gid_t {
-        return data.gr_gid;
-    }
+    auto group::gid() const -> gid_t { return data.gr_gid; }
 
-    auto group::name() const -> std::string_view {
-        return data.gr_name;
-    }
+    auto group::name() const -> std::string_view { return data.gr_name; }
 
-    auto group::password() const -> std::string_view {
-        return data.gr_passwd;
-    }
+    auto group::password() const -> std::string_view { return data.gr_passwd; }
 
     user::user(std::variant<uid_t, std::string> value) {
         auto buflen = sysconf(_SC_GETPW_R_SIZE_MAX);
@@ -80,13 +74,7 @@ namespace ext {
         passwd* result = nullptr;
 
         if (auto* uid = std::get_if<uid_t>(&value)) {
-            ret = getpwuid_r(
-                *uid,
-                &data,
-                buffer.get(),
-                buflen,
-                &result
-            );
+            ret = getpwuid_r(*uid, &data, buffer.get(), buflen, &result);
         }
         else if (auto* username = std::get_if<std::string>(&value)) {
             ret = getpwnam_r(
@@ -99,62 +87,50 @@ namespace ext {
         }
 
         if (ret != 0) {
-            std::visit([ret](auto&& arg) -> void {
-                throw std::system_error(
-                    ret,
-                    std::generic_category(),
-                    fmt::format("failed to look up user ({})", arg)
-                );
-            }, value);
+            std::visit(
+                [ret](auto&& arg) -> void {
+                    throw std::system_error(
+                        ret,
+                        std::generic_category(),
+                        fmt::format("failed to look up user ({})", arg)
+                    );
+                },
+                value
+            );
         }
 
         if (!result) {
-            std::visit([](auto&& arg) -> void {
-                throw std::runtime_error(fmt::format(
-                    "user ({}) does not exist", arg
-                ));
-            }, value);
+            std::visit(
+                [](auto&& arg) -> void {
+                    throw std::runtime_error(
+                        fmt::format("user ({}) does not exist", arg)
+                    );
+                },
+                value
+            );
         }
     }
 
-    auto user::home() const -> std::string_view {
-        return data.pw_dir;
-    }
+    auto user::home() const -> std::string_view { return data.pw_dir; }
 
-    auto user::gid() const -> gid_t {
-        return data.pw_gid;
-    }
+    auto user::gid() const -> gid_t { return data.pw_gid; }
 
-    auto user::info() const -> std::string_view {
-        return data.pw_gecos;
-    }
+    auto user::info() const -> std::string_view { return data.pw_gecos; }
 
-    auto user::name() const -> std::string_view {
-        return data.pw_name;
-    }
+    auto user::name() const -> std::string_view { return data.pw_name; }
 
-    auto user::password() const -> std::string_view {
-        return data.pw_passwd;
-    }
+    auto user::password() const -> std::string_view { return data.pw_passwd; }
 
-    auto user::shell() const -> std::string_view {
-        return data.pw_shell;
-    }
+    auto user::shell() const -> std::string_view { return data.pw_shell; }
 
-    auto user::uid() const -> uid_t {
-        return data.pw_uid;
-    }
+    auto user::uid() const -> uid_t { return data.pw_uid; }
 
-    auto chown(
-        const std::filesystem::path& path,
-        uid_t uid,
-        gid_t gid
-    ) -> void {
+    auto chown(const std::filesystem::path& path, uid_t uid, gid_t gid)
+        -> void {
         if (::chown(path.c_str(), uid, gid) == -1) {
-            throw system_error(fmt::format(
-                "changing ownership of '{}'",
-                path.native()
-            ));
+            throw system_error(
+                fmt::format("changing ownership of '{}'", path.native())
+            );
         }
     }
 
@@ -184,10 +160,8 @@ namespace ext {
         else if (group) chown(path, *group);
     }
 
-    auto exec(
-        std::string_view program,
-        std::span<const std::string_view> args
-    ) -> void {
+    auto exec(std::string_view program, std::span<const std::string_view> args)
+        -> void {
         auto argv = std::unique_ptr<char*[]>(new char*[args.size() + 2]);
 
         auto program_str = std::string(program);
@@ -209,10 +183,9 @@ namespace ext {
         }
 
         if (execvp(program.data(), argv.get()) == -1) {
-            throw ext::system_error(fmt::format(
-                "Failed to execute '{}' command",
-                program
-            ));
+            throw ext::system_error(
+                fmt::format("Failed to execute '{}' command", program)
+            );
         }
     }
 
@@ -229,9 +202,7 @@ namespace ext {
         return {};
     }
 
-    auto process::pid() const -> pid_t {
-        return _pid;
-    }
+    auto process::pid() const -> pid_t { return _pid; }
 
     auto process::wait() const -> exit_status {
         auto info = siginfo_t();
@@ -240,10 +211,7 @@ namespace ext {
             throw ext::system_error("Failed to wait for child process");
         }
 
-        return {
-            .code = info.si_code,
-            .status = info.si_status
-        };
+        return {.code = info.si_code, .status = info.si_status};
     }
 
     auto exec_bg(
@@ -252,9 +220,7 @@ namespace ext {
     ) -> process {
         const auto parent = process::fork();
 
-        if (!parent) {
-            exec(program, args);
-        }
+        if (!parent) { exec(program, args); }
 
         return *parent;
     }

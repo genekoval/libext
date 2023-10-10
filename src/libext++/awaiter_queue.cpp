@@ -5,12 +5,10 @@
 namespace ext {
     awaiter_queue::awaiter_queue(awaiter_queue&& other) :
         head(std::exchange(other.head, nullptr)),
-        tail(std::exchange(other.tail, nullptr))
-    {}
+        tail(std::exchange(other.tail, nullptr)) {}
 
-    auto awaiter_queue::operator=(
-        awaiter_queue&& other
-    ) noexcept -> awaiter_queue& {
+    auto awaiter_queue::operator=(awaiter_queue&& other) noexcept
+        -> awaiter_queue& {
         if (std::addressof(other) != this) {
             head = std::exchange(other.head, nullptr);
             tail = std::exchange(other.tail, nullptr);

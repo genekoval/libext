@@ -24,9 +24,7 @@ namespace ext {
 
         dynarray() noexcept(noexcept(Allocator())) = default;
 
-        explicit dynarray(const Allocator& alloc) noexcept :
-            allocator(alloc)
-        {}
+        explicit dynarray(const Allocator& alloc) noexcept : allocator(alloc) {}
 
         explicit dynarray(
             size_type capacity,
@@ -34,15 +32,13 @@ namespace ext {
         ) :
             allocator(alloc),
             cap(capacity),
-            storage(capacity == 0 ? nullptr : allocator.allocate(capacity))
-        {}
+            storage(capacity == 0 ? nullptr : allocator.allocate(capacity)) {}
 
         dynarray(
             std::initializer_list<T> init,
             const Allocator& alloc = Allocator()
         ) :
-            dynarray(init.size(), alloc)
-        {
+            dynarray(init.size(), alloc) {
             for (auto&& item : init) emplace_back(std::move(item));
         }
 
@@ -52,8 +48,7 @@ namespace ext {
             allocator(other.allocator),
             cap(std::exchange(other.cap, 0)),
             items(std::exchange(other.items, 0)),
-            storage(std::exchange(other.storage, nullptr))
-        {}
+            storage(std::exchange(other.storage, nullptr)) {}
 
         ~dynarray() {
             if (!storage) return;
@@ -70,9 +65,7 @@ namespace ext {
             return *this;
         }
 
-        auto operator[](size_type pos) -> reference {
-            return *(storage + pos);
-        }
+        auto operator[](size_type pos) -> reference { return *(storage + pos); }
 
         auto operator[](size_type pos) const -> const_reference {
             return *(storage + pos);
@@ -82,33 +75,19 @@ namespace ext {
             return allocator;
         }
 
-        auto begin() noexcept -> pointer {
-            return storage;
-        }
+        auto begin() noexcept -> pointer { return storage; }
 
-        auto begin() const noexcept -> const_pointer {
-            return storage;
-        }
+        auto begin() const noexcept -> const_pointer { return storage; }
 
-        auto cbegin() const noexcept -> const_pointer {
-            return storage;
-        }
+        auto cbegin() const noexcept -> const_pointer { return storage; }
 
-        auto end() noexcept -> pointer {
-            return storage + items;
-        }
+        auto end() noexcept -> pointer { return storage + items; }
 
-        auto end() const noexcept -> const_pointer {
-            return storage + items;
-        }
+        auto end() const noexcept -> const_pointer { return storage + items; }
 
-        auto cend() const noexcept -> const_pointer {
-            return storage + items;
-        }
+        auto cend() const noexcept -> const_pointer { return storage + items; }
 
-        auto capacity() const noexcept -> size_type {
-            return cap;
-        }
+        auto capacity() const noexcept -> size_type { return cap; }
 
         auto clear() -> void {
             std::destroy(begin(), end());
@@ -120,13 +99,9 @@ namespace ext {
             items += src.size();
         }
 
-        auto data() noexcept -> T* {
-            return storage;
-        }
+        auto data() noexcept -> T* { return storage; }
 
-        auto data() const noexcept -> const T* {
-            return storage;
-        }
+        auto data() const noexcept -> const T* { return storage; }
 
         template <typename... Args>
         auto emplace_back(Args&&... args) -> reference {
@@ -137,29 +112,19 @@ namespace ext {
             return *item;
         }
 
-        auto empty() const noexcept -> bool {
-            return items == 0;
-        }
+        auto empty() const noexcept -> bool { return items == 0; }
 
-        auto front() noexcept -> reference {
-            return *begin();
-        }
+        auto front() noexcept -> reference { return *begin(); }
 
-        auto front() const noexcept -> const_reference {
-            return *begin();
-        }
+        auto front() const noexcept -> const_reference { return *begin(); }
 
-        auto back() noexcept -> reference {
-            return *std::prev(end());
-        }
+        auto back() noexcept -> reference { return *std::prev(end()); }
 
         auto back() const noexcept -> const_reference {
             return *std::prev(end());
         }
 
-        auto size() const noexcept -> size_type {
-            return items;
-        }
+        auto size() const noexcept -> size_type { return items; }
 
         auto pop_back() -> void {
             --items;

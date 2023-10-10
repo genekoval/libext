@@ -9,10 +9,7 @@ namespace ext::chrono {
     using clock = std::chrono::system_clock;
     using time_point = clock::time_point;
 
-    enum time_type {
-        gmt,
-        local
-    };
+    enum time_type { gmt, local };
 
     class timestamp {
         std::string m_format;

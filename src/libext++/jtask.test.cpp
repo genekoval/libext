@@ -16,9 +16,7 @@ namespace {
     class awaitable {
         std::coroutine_handle<> coroutine;
     public:
-        auto await_ready() const noexcept -> bool {
-            return false;
-        }
+        auto await_ready() const noexcept -> bool { return false; }
 
         auto await_suspend(std::coroutine_handle<> coroutine) noexcept -> void {
             this->coroutine = coroutine;
@@ -26,9 +24,7 @@ namespace {
 
         auto await_resume() const noexcept -> void {}
 
-        auto resume() const -> void {
-            coroutine.resume();
-        }
+        auto resume() const -> void { coroutine.resume(); }
     };
 
     struct test_error : std::exception {
@@ -43,18 +39,14 @@ namespace {
     }
 
     template <typename Container>
-    requires std::convertible_to<
-        std::string_view,
-        typename Container::value_type
-    >
-    auto f(std::back_insert_iterator<Container> it) -> jtask<> {
+    requires std::
+        convertible_to<std::string_view, typename Container::value_type>
+        auto f(std::back_insert_iterator<Container> it) -> jtask<> {
         it = fstr;
         co_return;
     }
 
-    auto g(int x) -> jtask<int> {
-        co_return x + 1;
-    }
+    auto g(int x) -> jtask<int> { co_return x + 1; }
 }
 
 TEST(JTask, JoinVoid) {

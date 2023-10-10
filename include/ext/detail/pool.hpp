@@ -27,8 +27,7 @@ namespace ext {
     template <typename Provider>
     struct pool_value {
         using type = typename detail::pool_value<
-            decltype(std::declval<Provider>().provide())
-        >::type;
+            decltype(std::declval<Provider>().provide())>::type;
     };
 
     template <typename Provider>
@@ -37,31 +36,29 @@ namespace ext {
     };
 
     template <typename Provider>
-    concept pool_provider_checkin = requires(
-        Provider provider,
-        typename pool_value<Provider>::type& t
-    ) {
-        { provider.checkin(t) } -> std::same_as<bool>;
-    };
+    concept pool_provider_checkin =
+        requires(Provider provider, typename pool_value<Provider>::type& t) {
+            { provider.checkin(t) } -> std::same_as<bool>;
+        };
 
     template <typename Provider>
-    concept pool_provider_checkout = requires(
-        Provider provider,
-        typename pool_value<Provider>::type& t
-    ) {
-        { provider.checkout(t) } -> std::same_as<bool>;
-    };
+    concept pool_provider_checkout =
+        requires(Provider provider, typename pool_value<Provider>::type& t) {
+            { provider.checkout(t) } -> std::same_as<bool>;
+        };
 
     template <typename Provider>
     concept pool_provider_async = requires(Provider provider) {
-        { provider.provide() } ->
-            std::same_as<ext::task<typename pool_value<Provider>::type>>;
+        {
+            provider.provide()
+        } -> std::same_as<ext::task<typename pool_value<Provider>::type>>;
     };
 
     template <typename Provider>
     concept pool_provider_sync = requires(Provider provider) {
-        { provider.provide() } ->
-            std::same_as<typename pool_value<Provider>::type>;
+        {
+            provider.provide()
+        } -> std::same_as<typename pool_value<Provider>::type>;
     };
 
     template <pool_provider Provider>
@@ -93,19 +90,15 @@ namespace ext {
 
         pool_item(T&& t, pool& origin) :
             storage(std::forward<T>(t)),
-            origin(&origin)
-        {}
+            origin(&origin) {}
 
         pool_item(const pool_item&) = delete;
 
         pool_item(pool_item&& other) :
             storage(std::exchange(other.storage, std::nullopt)),
-            origin(std::exchange(other.origin, nullptr))
-        {}
+            origin(std::exchange(other.origin, nullptr)) {}
 
-        ~pool_item() {
-            checkin();
-        }
+        ~pool_item() { checkin(); }
 
         auto operator=(const pool_item&) -> pool_item& = delete;
 
@@ -120,25 +113,15 @@ namespace ext {
             return *this;
         }
 
-        auto operator->() const noexcept -> const T* {
-            return &*storage;
-        }
+        auto operator->() const noexcept -> const T* { return &*storage; }
 
-        auto operator->() noexcept -> T* {
-            return &*storage;
-        }
+        auto operator->() noexcept -> T* { return &*storage; }
 
-        auto operator*() const& noexcept -> const T& {
-            return *storage;
-        }
+        auto operator*() const& noexcept -> const T& { return *storage; }
 
-        auto operator*() & noexcept -> T& {
-            return *storage;
-        }
+        auto operator*() & noexcept -> T& { return *storage; }
 
-        explicit operator bool() const noexcept {
-            return has_value();
-        }
+        explicit operator bool() const noexcept { return has_value(); }
 
         auto checkin() noexcept -> void {
             if (!origin) return;
@@ -147,9 +130,7 @@ namespace ext {
             origin = nullptr;
         }
 
-        auto has_value() const noexcept -> bool {
-            return storage.has_value();
-        }
+        auto has_value() const noexcept -> bool { return storage.has_value(); }
 
         auto release() noexcept -> std::optional<T> {
             origin = nullptr;
@@ -194,9 +175,7 @@ namespace ext {
     }
 
     template <pool_provider Provider>
-    struct pool final :
-        detail::pool<typename pool_value<Provider>::type>
-    {
+    struct pool final : detail::pool<typename pool_value<Provider>::type> {
         using value_type = typename pool_value<Provider>::type;
         using item = typename detail::item_type<value_type, Provider>::type;
 
@@ -205,10 +184,9 @@ namespace ext {
         Provider provider;
     private:
         auto checkin(value_type&& t) noexcept -> void {
-            if (
-                this->storage.size() < this->config.max_size &&
-                provider.checkin(t)
-            ) this->storage.emplace_back(std::forward<value_type>(t));
+            if (this->storage.size() < this->config.max_size &&
+                provider.checkin(t))
+                this->storage.emplace_back(std::forward<value_type>(t));
         }
 
         auto try_checkout() -> std::optional<item> {
@@ -233,8 +211,7 @@ namespace ext {
         template <typename... Args>
         pool(const pool_options& config, Args&&... args) :
             detail::pool<value_type>(config),
-            provider(std::forward<Args>(args)...)
-        {}
+            provider(std::forward<Args>(args)...) {}
 
         pool(const pool&) = delete;
 
@@ -244,20 +221,21 @@ namespace ext {
 
         auto operator=(pool&&) -> pool& = delete;
 
-        auto checkout() -> item requires pool_provider_sync<Provider> {
+        auto checkout() -> item
+        requires pool_provider_sync<Provider>
+        {
             if (auto item = try_checkout()) return std::move(*item);
             return item(provider.provide(), *this);
         }
 
         auto checkout() -> ext::task<item>
-        requires pool_provider_async<Provider> {
+        requires pool_provider_async<Provider>
+        {
             if (auto item = try_checkout()) co_return std::move(*item);
             co_return item(co_await provider.provide(), *this);
         }
 
-        auto empty() const noexcept -> bool {
-            return this->storage.empty();
-        }
+        auto empty() const noexcept -> bool { return this->storage.empty(); }
 
         auto size() const noexcept -> std::size_t {
             return this->storage.size();

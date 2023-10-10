@@ -67,10 +67,8 @@ namespace ext {
         const std::optional<group>& group
     ) -> void;
 
-    auto exec(
-        std::string_view program,
-        std::span<const std::string_view> args
-    ) -> void;
+    auto exec(std::string_view program, std::span<const std::string_view> args)
+        -> void;
 
     struct exit_status {
         int code;
@@ -99,7 +97,7 @@ namespace ext {
         std::span<const std::string_view> args
     ) -> exit_status;
 
-    template <typename ...Args>
+    template <typename... Args>
     auto $(std::string_view program, Args&&... args) -> exit_status {
         const auto arg_list = std::vector<std::string_view> {args...};
         return wait_exec(program, arg_list);

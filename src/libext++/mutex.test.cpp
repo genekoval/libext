@@ -20,7 +20,8 @@ TEST(Mutex, SingleLock) {
 
         EXPECT_TRUE(mutex.unlocked());
         EXPECT_EQ(0, mutex.queue_size());
-    }().result();
+    }()
+                .result();
 }
 
 TEST(Mutex, MultiLock) {
@@ -43,8 +44,7 @@ TEST(Mutex, MultiLock) {
         EXPECT_TRUE(mutex.unlocked());
         EXPECT_EQ(5, ids.size());
 
-        for (auto i = 0; i < ids.size(); ++i)  {
-            EXPECT_EQ(i, ids.at(i));
-        }
-    }().result();
+        for (auto i = 0; i < ids.size(); ++i) { EXPECT_EQ(i, ids.at(i)); }
+    }()
+                .result();
 }

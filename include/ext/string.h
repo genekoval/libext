@@ -20,7 +20,7 @@
 #define QUOTE_VIEW(string_view) QUOTE(std::string(string_view))
 
 namespace ext {
-    using string_map = std::unordered_map<std::string,std::string>;
+    using string_map = std::unordered_map<std::string, std::string>;
 
     /**
      * Replaces any environment variables in the specified string with their
@@ -43,8 +43,7 @@ namespace ext {
      */
     template <
         typename Container,
-        typename Value = typename Container::value_type
-    >
+        typename Value = typename Container::value_type>
     auto join(const Container& elements, const char* delimiter) -> std::string {
         auto os = std::ostringstream();
         auto begin = elements.begin();
@@ -111,8 +110,7 @@ namespace ext {
     public:
         string_range(std::string_view sequence, std::string_view delimiter) :
             delimiter(delimiter),
-            sequence(sequence)
-        {}
+            sequence(sequence) {}
 
         class iterator {
         public:
@@ -141,8 +139,7 @@ namespace ext {
             iterator(const string_range* range) :
                 first(0),
                 last(range->sequence.find(range->delimiter)),
-                range(range)
-            {}
+                range(range) {}
 
             auto operator++() -> iterator& {
                 advance();
@@ -173,10 +170,8 @@ namespace ext {
         auto end() -> iterator { return iterator(); }
     };
 
-    auto split(
-        std::string_view sequence,
-        std::string_view delimiter
-    ) -> std::vector<std::string_view>;
+    auto split(std::string_view sequence, std::string_view delimiter)
+        -> std::vector<std::string_view>;
 
     /**
      * Returns a new string with all leading and trailing whitespace removed

@@ -9,9 +9,7 @@ namespace {
     class provider final {
         int counter = 0;
     public:
-        auto provide() -> ext::task<int> {
-            co_return counter++;
-        }
+        auto provide() -> ext::task<int> { co_return counter++; }
     };
 
     using int_pool = ext::pool<provider>;
@@ -24,7 +22,7 @@ class AsyncPoolTest : public testing::Test {
 protected:
     int_pool pool;
 
-    AsyncPoolTest() : pool(pool_options { .max_size = 2 }) {}
+    AsyncPoolTest() : pool(pool_options {.max_size = 2}) {}
 };
 
 TEST_F(AsyncPoolTest, Checkout) {

@@ -18,16 +18,14 @@ namespace ext {
             coroutine_handle coroutine;
 
             awaitable_base(coroutine_handle coroutine) noexcept :
-                coroutine(coroutine)
-            {}
+                coroutine(coroutine) {}
 
             auto await_ready() const noexcept -> bool {
                 return !coroutine || coroutine.done();
             }
 
-            auto await_suspend(
-                std::coroutine_handle<> awaiting
-            ) noexcept -> std::coroutine_handle<> {
+            auto await_suspend(std::coroutine_handle<> awaiting) noexcept
+                -> std::coroutine_handle<> {
                 coroutine.promise().continuation = awaiting;
                 return coroutine;
             }
@@ -39,13 +37,10 @@ namespace ext {
             std::coroutine_handle<> continuation;
 
             struct final_awaitable {
-                auto await_ready() const noexcept -> bool {
-                    return false;
-                }
+                auto await_ready() const noexcept -> bool { return false; }
 
                 template <typename Promise>
-                auto await_suspend(
-                    std::coroutine_handle<Promise> coroutine
+                auto await_suspend(std::coroutine_handle<Promise> coroutine
                 ) const noexcept -> std::coroutine_handle<> {
                     return coroutine.promise().continuation;
                 }
@@ -61,9 +56,7 @@ namespace ext {
                 return std::suspend_always();
             }
 
-            auto final_suspend() const noexcept {
-                return final_awaitable();
-            }
+            auto final_suspend() const noexcept { return final_awaitable(); }
         };
 
         task() noexcept : coroutine(nullptr) {}
@@ -73,8 +66,7 @@ namespace ext {
         task(const task&) = delete;
 
         task(task&& other) noexcept :
-            coroutine(std::exchange(other.coroutine, nullptr))
-        {}
+            coroutine(std::exchange(other.coroutine, nullptr)) {}
 
         ~task() {
             if (coroutine) coroutine.destroy();
@@ -91,7 +83,7 @@ namespace ext {
             return *this;
         }
 
-        auto operator co_await() const & noexcept {
+        auto operator co_await() const& noexcept {
             struct awaitable : awaitable_base {
                 using awaitable_base::awaitable_base;
 
@@ -104,7 +96,7 @@ namespace ext {
             return awaitable(coroutine);
         }
 
-        auto operator co_await() const && noexcept {
+        auto operator co_await() const&& noexcept {
             struct awaitable : awaitable_base {
                 using awaitable_base::awaitable_base;
 
@@ -140,9 +132,7 @@ namespace ext {
         }
     };
 
-    inline auto make_task() -> ext::task<> {
-        co_return;
-    }
+    inline auto make_task() -> ext::task<> { co_return; }
 
     template <typename T>
     auto make_task(T t) -> ext::task<T> {

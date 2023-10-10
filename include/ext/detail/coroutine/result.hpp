@@ -19,13 +19,9 @@ namespace ext::detail {
             throw no_result();
         }
     public:
-        auto get() & -> T& {
-            return *res();
-        }
+        auto get() & -> T& { return *res(); }
 
-        auto get() && -> T {
-            return std::move(*res());
-        }
+        auto get() && -> T { return std::move(*res()); }
 
         template <typename R>
         auto return_value(R&& value) noexcept -> void {
@@ -47,9 +43,7 @@ namespace ext::detail {
             if (!complete) throw no_result();
         }
 
-        auto return_void() noexcept -> void {
-            complete = true;
-        }
+        auto return_void() noexcept -> void { complete = true; }
 
         auto unhandled_exception() noexcept -> void {
             exception = std::current_exception();

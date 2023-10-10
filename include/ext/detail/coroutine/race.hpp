@@ -21,18 +21,13 @@ namespace ext {
         public:
             struct promise_type final : detail::result<void> {
                 struct final_awaitable {
-                    auto await_ready() const noexcept -> bool {
-                        return false;
-                    }
+                    auto await_ready() const noexcept -> bool { return false; }
 
                     template <typename Promise>
-                    auto await_suspend(
-                        std::coroutine_handle<Promise> coroutine
+                    auto await_suspend(std::coroutine_handle<Promise> coroutine
                     ) const noexcept -> std::coroutine_handle<> {
-                        const auto continuation = coroutine
-                            .promise()
-                            .context
-                            .coroutine;
+                        const auto continuation =
+                            coroutine.promise().context.coroutine;
 
                         if (continuation) return continuation;
                         return std::noop_coroutine();
@@ -53,9 +48,7 @@ namespace ext {
                     return std::suspend_always();
                 }
 
-                auto final_suspend() noexcept {
-                    return final_awaitable();
-                }
+                auto final_suspend() noexcept { return final_awaitable(); }
             };
 
             task() = default;
@@ -65,8 +58,7 @@ namespace ext {
             task(const task&) = delete;
 
             task(task&& other) noexcept :
-                coroutine(std::exchange(other.coroutine, nullptr))
-            {}
+                coroutine(std::exchange(other.coroutine, nullptr)) {}
 
             ~task() {
                 if (coroutine) coroutine.destroy();
@@ -83,13 +75,9 @@ namespace ext {
                 return *this;
             }
 
-            auto done() const noexcept -> bool {
-                return coroutine.done();
-            }
+            auto done() const noexcept -> bool { return coroutine.done(); }
 
-            auto resume() const -> void {
-                coroutine.resume();
-            }
+            auto resume() const -> void { coroutine.resume(); }
         };
 
         std::coroutine_handle<> coroutine;
@@ -97,10 +85,8 @@ namespace ext {
         std::array<task, sizeof...(Tasks)> tasks;
 
         template <std::size_t... I>
-        auto make_tasks(
-            task_tuple&& storage,
-            std::index_sequence<I...>
-        ) -> void {
+        auto make_tasks(task_tuple&& storage, std::index_sequence<I...>)
+            -> void {
             ((tasks[I] = run<I>(std::move(std::get<I>(storage)))), ...);
         }
 
@@ -138,8 +124,6 @@ namespace ext {
             this->coroutine = coroutine;
         }
 
-        auto await_resume() -> result_type {
-            return std::move(result);
-        }
+        auto await_resume() -> result_type { return std::move(result); }
     };
 }

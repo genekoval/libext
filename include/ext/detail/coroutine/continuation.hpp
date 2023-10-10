@@ -63,9 +63,7 @@ namespace ext {
 
         auto operator=(continuation&&) -> continuation& = default;
 
-        explicit operator bool() const noexcept {
-            return awaiting();
-        }
+        explicit operator bool() const noexcept { return awaiting(); }
 
         template <std::convertible_to<T> U>
         auto operator()(U&& u) -> void {
@@ -76,13 +74,9 @@ namespace ext {
             resume(exception);
         }
 
-        auto operator co_await() noexcept {
-            return awaitable(this);
-        }
+        auto operator co_await() noexcept { return awaitable(this); }
 
-        auto awaiting() const noexcept -> bool {
-            return coroutine != nullptr;
-        }
+        auto awaiting() const noexcept -> bool { return coroutine != nullptr; }
 
         template <std::convertible_to<T> U>
         auto resume(U&& u) -> void {
@@ -112,13 +106,10 @@ namespace ext {
 
             awaitable(awaitable&& other) :
                 coroutine(std::exchange(other.coroutine, nullptr)),
-                cont(other.cont)
-            {}
+                cont(other.cont) {}
 
             ~awaitable() {
-                if (cont->coroutine == coroutine) {
-                    cont->coroutine = nullptr;
-                }
+                if (cont->coroutine == coroutine) { cont->coroutine = nullptr; }
             }
 
             auto operator=(const awaitable&) -> awaitable& = delete;
@@ -132,13 +123,10 @@ namespace ext {
                 return *this;
             }
 
-            auto await_ready() const noexcept -> bool {
-                return cont->ready;
-            }
+            auto await_ready() const noexcept -> bool { return cont->ready; }
 
-            auto await_suspend(
-                std::coroutine_handle<> coroutine
-            ) -> std::coroutine_handle<> {
+            auto await_suspend(std::coroutine_handle<> coroutine)
+                -> std::coroutine_handle<> {
                 this->coroutine = coroutine;
                 auto tmp = std::exchange(cont->coroutine, coroutine);
                 return tmp ? tmp : std::noop_coroutine();
@@ -148,10 +136,9 @@ namespace ext {
                 cont->ready = false;
 
                 if (cont->exception) {
-                    std::rethrow_exception(std::exchange(
-                        cont->exception,
-                        nullptr
-                    ));
+                    std::rethrow_exception(
+                        std::exchange(cont->exception, nullptr)
+                    );
                 }
             }
         };
@@ -166,25 +153,17 @@ namespace ext {
 
         auto operator=(continuation&&) -> continuation& = default;
 
-        explicit operator bool() const noexcept {
-            return awaiting();
-        }
+        explicit operator bool() const noexcept { return awaiting(); }
 
-        auto operator()() -> void {
-            resume();
-        }
+        auto operator()() -> void { resume(); }
 
         auto operator()(std::exception_ptr exception) -> void {
             resume(exception);
         }
 
-        auto operator co_await() noexcept {
-            return awaitable(this);
-        }
+        auto operator co_await() noexcept { return awaitable(this); }
 
-        auto awaiting() const noexcept -> bool{
-            return coroutine != nullptr;
-        }
+        auto awaiting() const noexcept -> bool { return coroutine != nullptr; }
 
         auto resume() -> void {
             if (coroutine) std::exchange(coroutine, nullptr).resume();

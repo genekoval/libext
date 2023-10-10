@@ -11,9 +11,7 @@ TEST(StringReplace, ReplaceWord) {
     auto result = ext::replace(
         sequence,
         std::regex("brown"),
-        [](const std::cmatch&) -> std::string {
-            return "blue";
-        }
+        [](const std::cmatch&) -> std::string { return "blue"; }
     );
 
     ASSERT_EQ(expected, result);

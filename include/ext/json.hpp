@@ -20,8 +20,7 @@ namespace nlohmann {
 
     template <typename Duration>
     struct adl_serializer<
-        std::chrono::time_point<std::chrono::system_clock, Duration>
-    > {
+        std::chrono::time_point<std::chrono::system_clock, Duration>> {
         using clock = std::chrono::system_clock;
         using time_point = std::chrono::time_point<clock, Duration>;
 
@@ -65,9 +64,8 @@ namespace nlohmann {
             auto stream = std::ostringstream();
             stream.imbue(std::locale::classic());
 
-            stream
-                << std::put_time(&tm, "%FT%T.")
-                << std::setw(3) << std::setfill('0') << millis << "Z";
+            stream << std::put_time(&tm, "%FT%T.") << std::setw(3)
+                   << std::setfill('0') << millis << "Z";
 
             j = stream.str();
         }

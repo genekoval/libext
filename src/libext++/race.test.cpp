@@ -8,14 +8,13 @@ using ext::race;
 
 TEST(Race, ReturnValue) {
     []() -> jtask<> {
-        auto result = co_await race(
-            make_task(42),
-            make_task<std::string>("Hello")
-        );
+        auto result =
+            co_await race(make_task(42), make_task<std::string>("Hello"));
 
         EXPECT_EQ(0, result.index());
         EXPECT_EQ(42, co_await std::get<0>(std::move(result)));
-    }().result();
+    }()
+                .result();
 }
 
 TEST(Race, ThrowException) {
@@ -29,7 +28,8 @@ TEST(Race, ThrowException) {
             co_await std::get<0>(std::move(result)),
             std::runtime_error
         );
-    }().result();
+    }()
+                .result();
 }
 
 TEST(Race, EarlyExit) {
@@ -46,5 +46,6 @@ TEST(Race, EarlyExit) {
 
         EXPECT_TRUE(first_started);
         EXPECT_FALSE(second_started);
-    }().result();
+    }()
+                .result();
 }

@@ -12,17 +12,13 @@ namespace {
     class foo {
         bool* alive;
     public:
-        foo(bool& alive) : alive(&alive) {
-            *this->alive = true;
-        }
+        foo(bool& alive) : alive(&alive) { *this->alive = true; }
 
         foo(const foo&) = delete;
 
         foo(foo&&) = delete;
 
-        ~foo() {
-            *this->alive = false;
-        }
+        ~foo() { *this->alive = false; }
 
         auto operator=(const foo&) -> foo& = delete;
 
@@ -51,7 +47,7 @@ TEST(Dynarray, CapacityConstruction) {
 }
 
 TEST(Dynarray, InitializerListConstruction) {
-    const dynarray<int> array = { 5, 10, 15, 20 };
+    const dynarray<int> array = {5, 10, 15, 20};
 
     EXPECT_FALSE(array.empty());
     EXPECT_EQ(4, array.capacity());
@@ -106,7 +102,7 @@ TEST(Dynarray, Clear) {
 }
 
 TEST(Dynarray, Data) {
-    const auto array = dynarray<int> { 2, 4, 8 };
+    const auto array = dynarray<int> {2, 4, 8};
 
     const auto* const data = array.data();
 
@@ -116,7 +112,7 @@ TEST(Dynarray, Data) {
 }
 
 TEST(Dynarray, ConstIterator) {
-    const auto array = dynarray<int> { 1, 2, 3 };
+    const auto array = dynarray<int> {1, 2, 3};
 
     auto it = array.begin();
     const auto end = array.end();
@@ -131,7 +127,7 @@ TEST(Dynarray, ConstIterator) {
 }
 
 TEST(Dynarray, FrontBack) {
-    const auto array = dynarray<int> { 1, 2, 3 };
+    const auto array = dynarray<int> {1, 2, 3};
 
     const auto& front = array.front();
     const auto& back = array.back();
@@ -141,7 +137,7 @@ TEST(Dynarray, FrontBack) {
 }
 
 TEST(Dynarray, Span) {
-    const auto array = dynarray<int> { 100, 200, 300 };
+    const auto array = dynarray<int> {100, 200, 300};
     const std::span<const int> span = array;
 
     ASSERT_EQ(3, span.size());
