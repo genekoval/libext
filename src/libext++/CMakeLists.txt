@@ -1,0 +1,29 @@
+target_sources(ext
+    PRIVATE
+        awaiter_queue.cpp
+        chrono.cpp
+        counter.cpp
+        data_size.cpp
+        except.cpp
+        mutex.cpp
+        string.cpp
+        unix.cpp
+)
+
+if(PROJECT_TESTING)
+    target_sources(ext.test
+        PRIVATE
+            async_pool.test.cpp
+            data_size.test.cpp
+            dynarray.test.cpp
+            generator.test.cpp
+            jtask.test.cpp
+            math.test.cpp
+            mutex.test.cpp
+            pool.test.cpp
+            race.test.cpp
+            string_replace.test.cpp
+            string_split.test.cpp
+            string_trim.test.cpp
+    )
+endif()
